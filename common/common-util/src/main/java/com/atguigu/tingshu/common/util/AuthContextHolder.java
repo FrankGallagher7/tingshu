@@ -13,7 +13,8 @@ public class AuthContextHolder {
     }
 
     public static Long getUserId() {
-        return userId.get();
+        return 1l;
+//        return userId.get();
     }
 
     public static void removeUserId() {
