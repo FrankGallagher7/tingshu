@@ -11,7 +11,10 @@ import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.AlbumStat;
+import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
+import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +75,17 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		this.saveAlbumStat(albumInfo.getId(), SystemConstant.ALBUM_STAT_SUBSCRIBE, 0);
 		this.saveAlbumStat(albumInfo.getId(), SystemConstant.ALBUM_STAT_BUY, 0);
 		this.saveAlbumStat(albumInfo.getId(), SystemConstant.ALBUM_STAT_COMMENT, 0);
+	}
+
+	/**
+	 * 查看当前用户专辑分页列表
+	 * @param albumListVoPage
+	 * @param albumInfoQuery
+	 */
+	@Override
+	public Page<AlbumListVo> findUserAlbumPage(Page<AlbumListVo> albumListVoPage, AlbumInfoQuery albumInfoQuery) {
+
+		return albumInfoMapper.selectUserAlbumPage(albumListVoPage, albumInfoQuery);
 	}
 
 	/**
