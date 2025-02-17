@@ -19,11 +19,13 @@ public class UploadFileUtil {
         if (null == file) return "";
         String date = new DateTime().toString("yyyyMMdd");
         String filePath = tempPath + File.separator + date;
+        // 目录创建
         File curFlie = new File(filePath);
         if (!curFlie.exists()) {
             curFlie.mkdirs();
         }
         filePath = filePath + File.separator + file.getOriginalFilename();
+        // 保存文件
         file.transferTo(new File(filePath));
         return filePath;
     }
