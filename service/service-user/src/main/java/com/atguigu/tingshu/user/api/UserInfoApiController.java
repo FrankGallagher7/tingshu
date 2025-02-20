@@ -15,5 +15,7 @@ public class UserInfoApiController {
 	@Autowired
 	private UserInfoService userInfoService;
 
+
+
 }
 

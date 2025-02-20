@@ -2,6 +2,7 @@ package com.atguigu.tingshu.album.api;
 
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.album.service.VodService;
+import com.atguigu.tingshu.common.login.GuiLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.TrackInfo;
@@ -81,6 +82,7 @@ public class TrackInfoApiController {
 	 * @return
 	 */
 	@PostMapping("/trackInfo/findUserTrackPage/{page}/{limit}")
+	@GuiLogin
 	public Result<Page<TrackListVo>> findUserTrackPage(@PathVariable Long page,
 													   @PathVariable Long limit,
 													   @RequestBody TrackInfoQuery trackInfoQuery) {
@@ -104,6 +106,7 @@ public class TrackInfoApiController {
 	 * @return
 	 */
 	@PostMapping("/trackInfo/saveTrackInfo")
+	@GuiLogin
 	public Result saveTrackInfo (@RequestBody TrackInfoVo trackInfoVo) {
 
 		// 获取用户id
