@@ -36,6 +36,16 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.atguigu.tingshu</groupId>
+            <artifactId>service-client</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.atguigu.tingshu</groupId>
+            <artifactId>service-user</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
