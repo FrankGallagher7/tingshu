@@ -11,6 +11,9 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class KafkaService {
 
+    /**
+     * 发送者
+     */
     private static final Logger logger = LoggerFactory.getLogger(KafkaService.class);
 
     @Autowired

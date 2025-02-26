@@ -13,5 +13,5 @@ public interface SearchService {
      * 下架专辑-删除文档
      * @param albumId
      */
-//    void lowerAlbum(Long albumId);
+    void lowerAlbum(Long albumId);
 }

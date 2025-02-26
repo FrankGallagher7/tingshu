@@ -6,8 +6,10 @@ import com.atguigu.tingshu.album.mapper.AlbumAttributeValueMapper;
 import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
+import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.service.KafkaService;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.AlbumStat;
@@ -40,6 +42,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 
 	@Autowired
 	private AlbumStatMapper albumStatMapper;
+
+	@Autowired
+	private KafkaService kafkaService;
 
 	/**
 	 * 新增专辑
@@ -79,6 +84,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		this.saveAlbumStat(albumInfo.getId(), SystemConstant.ALBUM_STAT_SUBSCRIBE, 0);
 		this.saveAlbumStat(albumInfo.getId(), SystemConstant.ALBUM_STAT_BUY, 0);
 		this.saveAlbumStat(albumInfo.getId(), SystemConstant.ALBUM_STAT_COMMENT, 0);
+
+		// 上架
+		kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_UPPER, albumInfo.getId().toString());
 	}
 
 	/**
@@ -118,6 +126,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		QueryWrapper<AlbumStat> albumStatQueryWrapper = new QueryWrapper<>();
 		albumStatQueryWrapper.eq("album_id",id);
 		albumStatMapper.delete(albumStatQueryWrapper);
+
+		// 下架
+		kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_LOWER, id.toString());
 	}
 
 	/**
@@ -173,6 +184,14 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		for (AlbumAttributeValue albumAttributeValue : albumAttributeValueVoList) {
 			albumAttributeValue.setAlbumId(albumInfo.getId());
 			albumAttributeValueMapper.insert(albumAttributeValue);
+		}
+
+		if ("1".equals(albumInfo.getIsOpen())) {
+			//上架
+			kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_UPPER, albumInfo.getId().toString());
+		}else {
+			//下架
+			kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_LOWER, albumInfo.getId().toString());
 		}
 	}
 

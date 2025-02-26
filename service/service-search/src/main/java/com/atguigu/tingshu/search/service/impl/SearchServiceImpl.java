@@ -200,9 +200,9 @@ public class SearchServiceImpl implements SearchService {
      * 下架专辑-删除文档
      * @param albumId
      */
-//    @Override
-//    public void lowerAlbum(Long albumId) {
-//
-//        albumInfoIndexRepository.deleteById(albumId);
-//    }
+    @Override
+    public void lowerAlbum(Long albumId) {
+
+        albumInfoIndexRepository.deleteById(albumId);
+    }
 }

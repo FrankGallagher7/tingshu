@@ -22,7 +22,7 @@ public interface UserFeignClient {
      * @param userId
      * @return
      */
-    @RequestMapping("/api/user/getUserInfoVo/{userId}")
+    @RequestMapping("/api/user/userInfo/getUserInfoVo/{userId}")
     public Result<UserInfoVo> getUserInfoVo(@PathVariable Long userId);
 
 }

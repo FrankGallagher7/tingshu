@@ -18,6 +18,7 @@ public class AccountReceiver {
     private UserAccountService userAccountService;
 
     /**
+     * 监听器
      * 接收消息
      * @param record
      */
