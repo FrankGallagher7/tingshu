@@ -1,11 +1,14 @@
 package com.atguigu.tingshu.album.api;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPObject;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.BaseAttribute;
+import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.websocket.server.PathParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +27,34 @@ public class BaseCategoryApiController {
 
 	@Autowired
 	private BaseCategoryService baseCategoryService;
+
+
+	/**
+	 * 根据一级分类id获取全部分类信息
+	 * /api/album/category/getBaseCategoryList/{category1Id}
+	 * @param category1Id
+	 * @return
+	 */
+	@GetMapping("/category/getBaseCategoryList/{category1Id}")
+	public Result<JSONObject> getBaseCategoryListByCategory1Id(@PathVariable Long category1Id) {
+
+		JSONObject jsonObject = baseCategoryService.getBaseCategoryListByCategory1Id(category1Id);
+
+		return Result.ok(jsonObject);
+	}
+
+
+	/**
+	 * 根据一级分类Id查询三级分类列表
+	 * /api/album/category/findTopBaseCategory3/{category1Id}
+	 * @param category1Id
+	 * @return
+	 */
+	@GetMapping("/category/findTopBaseCategory3/{category1Id}")
+	public Result<List<BaseCategory3>> getTop7BaseCategory3(@PathVariable Long category1Id){
+		List<BaseCategory3> list = baseCategoryService.getTop7BaseCategory3(category1Id);
+		return Result.ok(list);
+	}
 
 
 	/**

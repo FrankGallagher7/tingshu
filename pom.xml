@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.5</version>
+        <version>3.1.6</version>
         <!-- 版本对应： https://start.spring.io/actuator/info -->
     </parent>
 
@@ -27,7 +27,7 @@
         <java.version>17</java.version>
         <cloud.version>2022.0.2</cloud.version>
         <alibaba.version>2022.0.0.0-RC1</alibaba.version>
-        <mybatis-plus.version>3.5.3.1</mybatis-plus.version>
+        <mybatis-plus.version>3.5.3</mybatis-plus.version>
         <mysql.version>8.0.30</mysql.version>
         <knife4j.version>4.1.0</knife4j.version>
         <fastjson.version>1.2.29</fastjson.version>

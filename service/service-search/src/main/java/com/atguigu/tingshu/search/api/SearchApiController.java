@@ -1,13 +1,12 @@
 package com.atguigu.tingshu.search.api;
 
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
+import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "搜索专辑管理")
 @RestController
@@ -17,6 +16,21 @@ public class SearchApiController {
 
     @Autowired
     private SearchService searchService;
+
+
+    /**
+     * 专辑检索
+     * /api/search/albumInfo
+     * @param albumIndexQuery
+     * @return
+     */
+    @PostMapping("/albumInfo")
+    public Result<AlbumSearchResponseVo> search(@RequestBody AlbumIndexQuery albumIndexQuery) {
+
+        AlbumSearchResponseVo albumSearchResponseVo = searchService.search(albumIndexQuery);
+
+        return Result.ok(albumSearchResponseVo);
+    }
 
 
     /**

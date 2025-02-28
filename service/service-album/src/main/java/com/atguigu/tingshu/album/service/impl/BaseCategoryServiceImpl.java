@@ -4,9 +4,9 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
-import com.atguigu.tingshu.model.album.BaseAttribute;
-import com.atguigu.tingshu.model.album.BaseCategory1;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -129,5 +129,83 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 
 		BaseCategoryView baseCategoryView = baseCategoryViewMapper.selectById(category3Id);
 		return baseCategoryView;
+	}
+
+	/**
+	 * 根据一级分类Id查询三级分类列表
+	 * @param category1Id
+	 * @return
+	 */
+	@Override
+	public List<BaseCategory3> getTop7BaseCategory3(Long category1Id) {
+
+		//根据一级分类ID查询所属二级分类集合
+		List<BaseCategory2> baseCategory2List = baseCategory2Mapper.selectList(new QueryWrapper<BaseCategory2>().eq("category1_id", category1Id));
+
+		//根据二级分类集合过滤出二级分类ID集合
+		List<Long> category2IdList = baseCategory2List.stream().map(baseCategory2 -> baseCategory2.getId()).collect(Collectors.toList());
+
+		//构建查询条件对象
+		QueryWrapper<BaseCategory3> queryWrapper = new QueryWrapper<>();
+		//添加二级分类集合ID
+		queryWrapper.in("category2_id",category2IdList);
+		//筛选可以置顶的分类
+		queryWrapper.eq("is_top",1);
+		//添加排序
+		queryWrapper.orderByDesc("order_num");
+		//只获取前七个分类
+		queryWrapper.last("limit 7");
+
+		//查询三级分类数据
+		List<BaseCategory3> baseCategory3List = baseCategory3Mapper.selectList(queryWrapper);
+		return baseCategory3List;
+	}
+
+	/**
+	 * 根据一级分类id获取全部分类信息
+	 * @param category1Id
+	 * @return
+	 */
+	@Override
+	public JSONObject getBaseCategoryListByCategory1Id(Long category1Id) {
+		//1.根据1级分类ID查询分类视图得到一级分类列表
+		LambdaQueryWrapper<BaseCategoryView> queryWrapper = new LambdaQueryWrapper<>();
+		queryWrapper.eq(BaseCategoryView::getCategory1Id, category1Id);
+		List<BaseCategoryView> baseCategory1List = baseCategoryViewMapper.selectList(queryWrapper);
+		//2.处理一级分类对象 封装一级分类对象包含ID，分类名称
+		if (CollectionUtil.isNotEmpty(baseCategory1List)) {
+			//2.1 构建一级分类对象 封装ID，名称
+			JSONObject jsonObject1 = new JSONObject();
+			jsonObject1.put("categoryId", baseCategory1List.get(0).getCategory1Id());
+			jsonObject1.put("categoryName", baseCategory1List.get(0).getCategory1Name());
+			//3.处理一级分类下二级分类
+			//3.1 将一级分类集合再按照二级分类ID分组得到Map Map中key:二级分类ID，Map中Value二级分类集合
+			Map<Long, List<BaseCategoryView>> category2Map = baseCategory1List.stream().collect(Collectors.groupingBy(BaseCategoryView::getCategory2Id));
+			//3.2 遍历Map每遍历一次Map封装二级分类JSON对象
+			List<JSONObject> jsonObject2List = new ArrayList<>();
+			for (Map.Entry<Long, List<BaseCategoryView>> entry2 : category2Map.entrySet()) {
+				//3.3 构建二级分类对象，封装二级分类ID及名称
+				JSONObject jsonObject2 = new JSONObject();
+				jsonObject2.put("categoryId", entry2.getKey());
+				jsonObject2.put("categoryName", entry2.getValue().get(0).getCategory2Name());
+				jsonObject2List.add(jsonObject2);
+				//4.处理二级分类下三级分类
+				//4.1 遍历二级分类列表，没遍历一条记录构建三级分类对象
+				List<JSONObject> jsonObject3List = new ArrayList<>();
+				for (BaseCategoryView baseCategoryView : entry2.getValue()) {
+					//4.2 构建三级分类对象，封装三级分类ID名称
+					JSONObject jsonObject3 = new JSONObject();
+					jsonObject3.put("categoryId", baseCategoryView.getCategory3Id());
+					jsonObject3.put("categoryName", baseCategoryView.getCategory3Name());
+					jsonObject3List.add(jsonObject3);
+				}
+				//4.3 将三级分类集合放入二级分类对象中
+				jsonObject2.put("categoryChild", jsonObject3List);
+			}
+			//3.3 将二级分类集合放入一级分类对象中
+			jsonObject1.put("categoryChild", jsonObject2List);
+			return jsonObject1;
+		}
+		return null;
 	}
 }
