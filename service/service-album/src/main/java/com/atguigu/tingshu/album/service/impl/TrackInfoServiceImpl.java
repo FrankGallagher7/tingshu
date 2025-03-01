@@ -12,6 +12,7 @@ import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
@@ -187,5 +188,20 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 		// 删除云点播声音
 		vodService.deleteTrack(mediaFileId);
+	}
+
+	/**
+	 * 用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识
+	 * @param pageInfo
+	 * @param albumId
+	 * @param userId
+	 * @return
+	 */
+	@Override
+	public Page<AlbumTrackListVo> getAlbumTrackPage(Page<AlbumTrackListVo> pageInfo, Long albumId, Long userId) {
+
+		Page<AlbumTrackListVo> albumTrackPage = trackInfoMapper.selectAlbumTrackPage(pageInfo,albumId,userId);
+
+		return albumTrackPage;
 	}
 }

@@ -7,9 +7,11 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +30,30 @@ public class TrackInfoApiController {
 
 	@Autowired
 	private VodService vodService;
+
+
+	/**
+	 * 查询专辑声音分页列表
+	 *
+	 * 用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识
+	 * /api/album/trackInfo/findAlbumTrackPage/{albumId}/{page}/{limit}
+	 * @param albumId
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	@GuiLogin(required = false)
+	@Operation(summary = "用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识")
+	@GetMapping("/trackInfo/findAlbumTrackPage/{albumId}/{page}/{limit}")
+	public Result<Page<AlbumTrackListVo>> getAlbumTrackPage(@PathVariable Long albumId, @PathVariable Integer page, @PathVariable Integer limit) {
+		//1.获取用户ID
+		Long userId = AuthContextHolder.getUserId();
+		//2.封装分页对象
+		Page<AlbumTrackListVo> pageInfo = new Page<>(page, limit);
+		//3.调用业务层封装分页对象
+		pageInfo = trackInfoService.getAlbumTrackPage(pageInfo, albumId, userId);
+		return Result.ok(pageInfo);
+	}
 
 
 	/**

@@ -5,15 +5,22 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.RandomUtil;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.Buckets;
+import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
+import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
@@ -31,8 +38,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -229,7 +238,6 @@ public class SearchServiceImpl implements SearchService {
      * @return
      */
     @Override
-    @SneakyThrows
     public AlbumSearchResponseVo search(AlbumIndexQuery albumIndexQuery) {
 
         // 构建请求对象
@@ -240,13 +248,89 @@ public class SearchServiceImpl implements SearchService {
         System.err.println(searchRequest.toString());
 
         // 执行查询
-        SearchResponse<AlbumInfoIndex> searchResponse = elasticsearchClient.search(searchRequest, AlbumInfoIndex.class);
+        SearchResponse<AlbumInfoIndex> searchResponse = null;
+        try {
+            searchResponse = elasticsearchClient.search(searchRequest, AlbumInfoIndex.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         // 转换查询条件
 
         AlbumSearchResponseVo albumSearchResponseVo = this.parseResult(searchResponse, albumIndexQuery);
 
         return albumSearchResponseVo;
+    }
+
+    /**
+     * 查询1级分类下置顶3级分类下包含分类热门专辑
+     * @param category1Id
+     * @return
+     */
+    @Override
+    public List<Map<String, Object>> getTopCategory3HotAlbumList(Long category1Id) {
+
+        try {
+            //1.根据1级分类ID远程调用专辑服务获取置顶前7个三级分类集合
+            //1.1 远程调用专辑服务获取置顶三级分类集合
+            List<BaseCategory3> baseCategory3List = albumFeignClient.getTop7BaseCategory3(category1Id).getData();
+            Assert.notNull(baseCategory3List, "一级分类{}未包含置顶三级分类", category1Id);
+            //1.2 获取所有置顶三级分类ID集合
+            List<Long> baseCategory3IdList = baseCategory3List.stream().map(BaseCategory3::getId).collect(Collectors.toList());
+            //1.3 将三级分类集合转为Map<三级分类ID，三级分类对象> 方便解析结果封装三级分类对象
+            //对BaseCategory3集合处理，转为Map Map中Key:ID，Map中val:三级分类对象BaseCategory3
+            Map<Long, BaseCategory3> category3Map = baseCategory3List.stream()
+                    .collect(Collectors.toMap(BaseCategory3::getId, baseCategory3 -> baseCategory3));
+            //1.4 将置顶三级分类ID转为FieldValue类型
+            List<FieldValue> fieldValueList = baseCategory3IdList.stream()
+                    .map(baseCategory3Id -> FieldValue.of(baseCategory3Id))
+                    .collect(Collectors.toList());
+            //2.检索ES获取置顶三级分类（7个）不同置顶三级分类下热度前6个的专辑列表
+            //2.1 采用ES检索方法，通过lambda构建请求参数：query,size,aggs
+            SearchResponse<AlbumInfoIndex> searchResponse = elasticsearchClient.search(
+                    s -> s.index(INDEX_NAME)
+                            .query(q -> q.terms(t -> t.field("category3Id").terms(tf -> tf.value(fieldValueList))))
+                            .size(0)
+                            .aggregations("category3Agg", a -> a.terms(
+                                    t -> t.field("category3Id").size(10)
+                            ).aggregations("top6Agg", a1 -> a1.topHits(t -> t.size(6).sort(sort -> sort.field(f -> f.field("hotScore").order(SortOrder.Desc)))))),
+                    AlbumInfoIndex.class);
+            //3.解析ES响应聚合
+            System.out.println(searchResponse);
+            //3.1 获取三级分类聚合结果对象
+            Aggregate category3Agg = searchResponse.aggregations().get("category3Agg");
+            //3.2 获取三级分类聚合“桶”集合 由于三级分类ID字段类型为Long调用lterms方法
+            Buckets<LongTermsBucket> buckets = category3Agg.lterms().buckets();
+            List<LongTermsBucket> bucketList = buckets.array();
+            if (CollectionUtil.isNotEmpty(bucketList)) {
+                //3.3 遍历“桶”集合，每遍历一个“桶”处理某个置顶三级分类热门专辑
+                List<Map<String, Object>> listMap = bucketList.stream().map(bucket -> {
+                    Map<String, Object> map = new HashMap<>();
+                    //3.3.1 处理热门专辑->分类
+                    long category3Id = bucket.key();
+                    BaseCategory3 baseCategory3 = category3Map.get(category3Id);
+                    map.put("baseCategory3", baseCategory3);
+                    //3.3.2 处理热门专辑->专辑列表
+                    //3.3.2.1 继续下钻获取子聚合得到当前分类下热门专辑
+                    Aggregate top6Agg = bucket.aggregations().get("top6Agg");
+                    List<Hit<JsonData>> hits = top6Agg.topHits().hits().hits();
+                    if (CollectionUtil.isNotEmpty(hits)) {
+                        List<AlbumInfoIndex> hotAlbumList = hits.stream().map(hit -> {
+                            //获取专辑JSON对象类型
+                            JsonData source = hit.source();
+                            return JSON.parseObject(source.toString(), AlbumInfoIndex.class);
+                        }).collect(Collectors.toList());
+                        map.put("list", hotAlbumList);
+                    }
+                    return map;
+                }).collect(Collectors.toList());
+                return listMap;
+            }
+        } catch (Exception e) {
+            log.error("[检索服务]首页热门专辑异常：{}", e);
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 
     /**

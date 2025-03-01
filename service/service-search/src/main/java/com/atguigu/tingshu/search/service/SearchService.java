@@ -3,6 +3,9 @@ package com.atguigu.tingshu.search.service;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 
+import java.util.List;
+import java.util.Map;
+
 public interface SearchService {
 
 
@@ -24,4 +27,11 @@ public interface SearchService {
      * @return
      */
     AlbumSearchResponseVo search(AlbumIndexQuery albumIndexQuery);
+
+    /**
+     * 查询1级分类下置顶3级分类下包含分类热门专辑
+     * @param category1Id
+     * @return
+     */
+    List<Map<String, Object>> getTopCategory3HotAlbumList(Long category1Id);
 }

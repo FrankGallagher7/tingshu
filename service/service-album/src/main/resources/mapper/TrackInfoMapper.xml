@@ -48,5 +48,23 @@
         group by ti.id
         order by ti.id desc
     </select>
+
+<!--    用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识-->
+    <select id="selectAlbumTrackPage" resultType="com.atguigu.tingshu.vo.album.AlbumTrackListVo">
+        select
+            ts.track_id,
+            ti.track_title,
+            ti.media_duration,
+            ti.order_num,
+            max(if(ts.stat_type='0701', ts.stat_num, 0)) playStatNum,
+            max(if(ts.stat_type='0704', ts.stat_num, 0)) collectStatNum,
+            ti.create_time
+        from track_info ti
+                 inner join track_stat ts
+                            on ti.id = ts.track_id
+        where ti.album_id = #{albumId} and ti.is_deleted = 0 and ti.status = 0501
+        group by ti.id
+        order by ti.order_num asc
+    </select>
 </mapper>
 
