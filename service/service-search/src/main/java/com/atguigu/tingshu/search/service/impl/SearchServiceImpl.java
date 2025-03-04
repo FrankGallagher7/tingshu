@@ -17,11 +17,9 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
 import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.AlbumFeignClient;
+import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.result.Result;
-import com.atguigu.tingshu.model.album.AlbumAttributeValue;
-import com.atguigu.tingshu.model.album.AlbumInfo;
-import com.atguigu.tingshu.model.album.BaseCategory3;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
@@ -35,6 +33,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
@@ -70,6 +69,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Autowired
     private ElasticsearchClient elasticsearchClient;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 
     /**
@@ -330,6 +332,77 @@ public class SearchServiceImpl implements SearchService {
             log.error("[检索服务]首页热门专辑异常：{}", e);
             throw new RuntimeException(e);
         }
+        return null;
+    }
+
+    /**
+     * 更新所有分类下排行榜-手动调用
+     */
+    @Override
+//    @SneakyThrows
+    public void updateLatelyAlbumRanking() {
+
+        try {
+            // 获取所有一级分类
+            List<BaseCategory1> category1List =  albumFeignClient.getAllCategory1().getData();
+            Assert.notNull(category1List, "查询所有一级分类异常");
+            // 处理集合
+            List<Long> baseCategory1List = category1List.stream().map(baseCategory1 -> baseCategory1.getId()).collect(Collectors.toList());
+            // 遍历集合  循环嵌套查询
+            for (Long category1Id : baseCategory1List) {
+                // 设置查询的5个维度
+                String[] rankingDimensionArray = new String[]{"hotScore", "playStatNum", "subscribeStatNum", "buyStatNum", "commentStatNum"};
+
+                // 循环维度
+                for (String rankingDimension : rankingDimensionArray) {
+
+                    // 构建DSL语句
+                    SearchResponse<AlbumInfoIndex> searchResponses = elasticsearchClient.search(s ->
+                            s.index(INDEX_NAME)
+                                    .query(q -> q.term(t -> t.field("category1Id").value(category1Id)))
+                                    .sort(sort -> sort.field(f -> f.field(rankingDimension).order(SortOrder.Desc)))
+                                    .size(20)
+                            , AlbumInfoIndex.class);
+
+                    // 解析es查询结果
+                    List<Hit<AlbumInfoIndex>> hits = searchResponses.hits().hits();
+                    // 处理获取的集合数据
+                    List<AlbumInfoIndex> albumInfoIndexList = hits.stream().map(hit -> hit.source()).collect(Collectors.toList());
+
+                    // 定义存储key
+                    String key = RedisConstant.RANKING_KEY_PREFIX + category1Id;
+
+                    //存储
+                    redisTemplate.opsForHash().put(key, rankingDimension, albumInfoIndexList);
+                }
+            }
+        } catch (Exception e) {
+            log.error("[搜索服务]更新排行榜异常：{}", e);
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    /**
+     * 获取排行榜
+     *
+     * 获取指定1级分类下不同排序方式榜单列表-从Redis中获取
+     * @param category1Id
+     * @param dimension
+     * @return
+     */
+    @Override
+    public List<AlbumInfoIndex> findRankingList(String category1Id, String dimension) {
+
+        // 定义存储排行榜的key
+        String key = RedisConstant.RANKING_KEY_PREFIX + category1Id;
+        // 判断
+        Boolean flag = redisTemplate.opsForHash().hasKey(key, dimension);
+        if (flag) { // 有key
+            List<AlbumInfoIndex> list = (List<AlbumInfoIndex>) redisTemplate.opsForHash().get(key, dimension);
+            return list;
+        }
+
         return null;
     }
 

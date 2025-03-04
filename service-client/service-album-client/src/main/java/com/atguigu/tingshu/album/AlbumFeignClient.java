@@ -3,6 +3,7 @@ package com.atguigu.tingshu.album;
 import com.atguigu.tingshu.album.impl.AlbumDegradeFeignClient;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.BaseCategory1;
 import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.vo.album.AlbumStatVo;
@@ -21,6 +22,14 @@ import java.util.List;
  */
 @FeignClient(value = "service-album", fallback = AlbumDegradeFeignClient.class)
 public interface AlbumFeignClient {
+
+    /**
+     * 查询所有一级分类列表
+     * /api/album/category/findAllCategory1
+     * @return
+     */
+    @GetMapping("/api/album/category/findAllCategory1")
+    public Result<List<BaseCategory1>> getAllCategory1();
 
     /**
      * 根据专辑ID获取专辑统计信息

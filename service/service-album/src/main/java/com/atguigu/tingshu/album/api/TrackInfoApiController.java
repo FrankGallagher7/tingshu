@@ -101,7 +101,9 @@ public class TrackInfoApiController {
 
 	/**
 	 * 获取当前用户声音分页列表
-	 * api/album/trackInfo/findUserTrackPage/{page}/{limit}
+	 *
+	 * /api/album/trackInfo/findUserTrackPage/{page}/{limit}
+	 *
 	 * @param page
 	 * @param limit
 	 * @param trackInfoQuery

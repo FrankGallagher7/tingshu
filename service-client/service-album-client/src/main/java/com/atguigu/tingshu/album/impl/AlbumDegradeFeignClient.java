@@ -4,6 +4,7 @@ package com.atguigu.tingshu.album.impl;
 import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.BaseCategory1;
 import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.vo.album.AlbumStatVo;
@@ -15,6 +16,16 @@ import java.util.List;
 @Component
 @Slf4j
 public class AlbumDegradeFeignClient implements AlbumFeignClient {
+
+    /**
+     * 查询所有一级分类列表
+     * @return
+     */
+    @Override
+    public Result<List<BaseCategory1>> getAllCategory1() {
+        log.error("[专辑模块Feign调用]getAllCategory1异常");
+        return null;
+    }
 
     /**
      * 根据专辑ID获取专辑统计信息

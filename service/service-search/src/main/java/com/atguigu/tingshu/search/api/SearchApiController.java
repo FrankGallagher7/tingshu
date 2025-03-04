@@ -3,6 +3,7 @@ package com.atguigu.tingshu.search.api;
 import com.atguigu.tingshu.common.login.GuiLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
 import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
@@ -21,6 +22,42 @@ import java.util.Map;
 @RequestMapping("api/search")
 @SuppressWarnings({"all"})
 public class SearchApiController {
+
+
+    /**
+     * 获取排行榜
+     *
+     *  获取指定1级分类下不同排序方式榜单列表-从Redis中获取
+     * /api/search/albumInfo/findRankingList/{category1Id}/{dimension}
+     * @param category1Id
+     * @param dimension
+     * @return
+     */
+    @Operation(summary = "获取指定1级分类下不同排序方式榜单列表")
+    @GetMapping("/albumInfo/findRankingList/{category1Id}/{dimension}")
+    public Result findRankingList(@PathVariable String category1Id,
+                                  @PathVariable String dimension) {
+
+        List<AlbumInfoIndex> list = searchService.findRankingList(category1Id, dimension);
+
+        return Result.ok(list);
+    }
+
+
+    /**
+     * 更新所有分类下排行榜-手动调用
+     *
+     *  为定时更新首页排行榜提供调用接口
+     * /api/search/albumInfo/updateLatelyAlbumRanking
+     * @return
+     */
+    @GetMapping("/albumInfo/updateLatelyAlbumRanking")
+    public Result updateLatelyAlbumRanking() {
+
+        searchService.updateLatelyAlbumRanking();
+
+        return Result.ok();
+    }
 
     @Autowired
     private SearchService searchService;

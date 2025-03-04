@@ -48,6 +48,7 @@ public class RedisConstant {
     public static final int USER_LOGIN_KEY_TIMEOUT = 60 * 60 * 24 * 100;
     public static final int USER_LOGIN_REFRESH_KEY_TIMEOUT = 60 * 60 * 24 * 365;
 
+    // 排行
     public static final String RANKING_KEY_PREFIX = "ranking:";
     public static final String ALBUM_STAT_ENDTIME = "album:stat:endTime";
 

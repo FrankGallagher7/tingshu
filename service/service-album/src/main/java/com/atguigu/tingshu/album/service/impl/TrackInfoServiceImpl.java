@@ -1,21 +1,26 @@
 package com.atguigu.tingshu.album.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.lang.Assert;
 import com.alibaba.nacos.common.utils.StringUtils;
+import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.TrackInfoMapper;
 import com.atguigu.tingshu.album.mapper.TrackStatMapper;
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.album.service.VodService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.user.client.UserFeignClient;
 import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
+import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -27,6 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -44,6 +53,12 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 	@Autowired
 	private TrackStatMapper trackStatMapper;
+
+	@Autowired
+	private AlbumFeignClient albumFeignClient;
+
+	@Autowired
+	private UserFeignClient userFeignClient;
 
 	/**
 	 * 保存声音
@@ -120,6 +135,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 
 		return trackInfoMapper.selectUserTrackPage(listVoPage,trackInfoQuery);
+		
 	}
 
 	/**
@@ -202,6 +218,86 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 		Page<AlbumTrackListVo> albumTrackPage = trackInfoMapper.selectAlbumTrackPage(pageInfo,albumId,userId);
 
+		// 获取专辑类型 免费 VIP免费 付费
+		AlbumInfo albumInfo = albumFeignClient.getAlbumInfo(albumId).getData();
+		Assert.notNull(albumInfo,"查询专辑：{}出现异常",albumId);
+		String payType = albumInfo.getPayType();
+
+
+		// 判断是否登录
+		if(userId == null) { //未登录
+			// 判断在未登录的情况下，是VIP免费还是付费
+			if (payType.equals(SystemConstant.ALBUM_PAY_TYPE_VIPFREE) || payType.equals(SystemConstant.ALBUM_PAY_TYPE_REQUIRE)) {
+				// 拿到声音列表
+				List<AlbumTrackListVo> albumTrackListVos = albumTrackPage.getRecords();
+				// 过滤前五集试听
+				List<AlbumTrackListVo> albumTrackListVo = albumTrackListVos.stream().filter(new Predicate<AlbumTrackListVo>() {
+					@Override
+					public boolean test(AlbumTrackListVo albumTrackListVo) {
+						// 返回true过滤，返回false保留
+						return albumTrackListVo.getOrderNum() > albumInfo.getTracksForFree();
+					}
+				}).collect(Collectors.toList());
+
+				// 将剩余的声音设置为付费标识
+				for (AlbumTrackListVo trackListVo : albumTrackListVo) {
+					trackListVo.setIsShowPaidMark(true);
+				}
+			}
+
+		}else{ //已登录
+			// 设置变量用于后续处理声音是否购买
+			Boolean isNeedCheckPayStatus = false;
+			// 根据用户id查询用户信息
+			UserInfoVo userInfoVo = userFeignClient.getUserInfoVo(userId).getData();
+			Assert.notNull(userInfoVo,"查询用户信息id：{}出现异常",userId);
+			// 获取用户VIP状态
+			Integer isVip = userInfoVo.getIsVip();
+			// 获取用户的会员到期时间
+			Date vipExpireTime = userInfoVo.getVipExpireTime();
+
+			// VIP免费
+			if (payType.equals(SystemConstant.ALBUM_PAY_TYPE_VIPFREE)) {
+
+				// 普通用户
+				if (isVip.intValue() == 0) {
+					isNeedCheckPayStatus = true;
+				}
+				// 过期VIP用户==普通用户
+				if (isVip.intValue() == 1 && new Date().after(vipExpireTime)) {
+					isNeedCheckPayStatus = true;
+				}
+			}
+
+			// 付费
+			if (payType.equals(SystemConstant.ALBUM_PAY_TYPE_REQUIRE)) {
+				isNeedCheckPayStatus = true;
+			}
+
+
+			if (isNeedCheckPayStatus) {
+				//获取待验证的声音列表（前五集除外）
+				List<AlbumTrackListVo> needChackTrackList = albumTrackPage.getRecords().stream().filter(albumTrackListVo -> {
+					return albumTrackListVo.getOrderNum() > albumInfo.getTracksForFree();
+				}).collect(Collectors.toList());
+				// 获取过滤后的声音id列表
+				List<Long> needChackTrackIdList = needChackTrackList.stream().map(albumTrackListVo -> albumTrackListVo.getTrackId()).collect(Collectors.toList());
+
+				// 进行下一步处理--查询是否购买过专辑或者声音
+				Map<Long, Integer> resultMap = userFeignClient.userIsPaidTrack(userId, albumId, needChackTrackIdList).getData();
+
+				for (AlbumTrackListVo albumTrackListVo : needChackTrackList) {
+
+					// 根据指定的声音id，获取结果
+					Integer result = resultMap.get(albumTrackListVo.getTrackId());
+
+					// 判断 结果为0，表示未购买，设置为付费标识
+					if(result.intValue() == 0) {
+						albumTrackListVo.setIsShowPaidMark(true);
+					}
+				}
+			}
+		}
 		return albumTrackPage;
 	}
 }

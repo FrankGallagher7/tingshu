@@ -4,14 +4,20 @@ import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.service.KafkaService;
 import com.atguigu.tingshu.model.user.UserInfo;
+import com.atguigu.tingshu.model.user.UserPaidAlbum;
+import com.atguigu.tingshu.model.user.UserPaidTrack;
 import com.atguigu.tingshu.user.mapper.UserInfoMapper;
+import com.atguigu.tingshu.user.mapper.UserPaidAlbumMapper;
+import com.atguigu.tingshu.user.mapper.UserPaidTrackMapper;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +28,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -41,6 +49,12 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
 	@Autowired
 	private KafkaService kafkaService;
+
+	@Autowired
+	private UserPaidAlbumMapper userPaidAlbumMapper;
+
+	@Autowired
+	private UserPaidTrackMapper userPaidTrackMapper;
 
 	/**
 	 * 小程序授权登录
@@ -123,5 +137,65 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
 		userInfoMapper.updateById(userInfo);
 
+	}
+
+	/**
+	 * 判断当前用户某一页中声音列表购买情况
+	 * @param userId
+	 * @param albumId
+	 * @param needChackTrackIdList
+	 * @return
+	 */
+	@Override
+	public Map<Long, Integer> userIsPaidTrack(Long userId, Long albumId, List<Long> needChackTrackIdList) {
+
+		// 创建Map封装结果
+		Map<Long, Integer> resultMap = new HashMap<>();
+
+		// 根据专辑ID查询用户购买的专辑
+//		select * from user_paid_album where album_id = #{albumId} and user_id = #{userId}
+		QueryWrapper<UserPaidAlbum> userPaidAlbumQueryWrapper = new QueryWrapper<>();
+		userPaidAlbumQueryWrapper.eq("album_id", albumId);
+		userPaidAlbumQueryWrapper.eq("user_id", userId);
+		Long count = userPaidAlbumMapper.selectCount(userPaidAlbumQueryWrapper);
+
+		// 购买了专辑，直接将所有声音ID列表设置为1，表示已购买
+		if (count.intValue() > 0) {
+
+
+			for (Long trackId : needChackTrackIdList) {
+				resultMap.put(trackId, 1);
+			}
+			return resultMap;
+		}
+
+		// 根据声音列表查询用户是否已购买该声音
+		// select * from user_paid_track where track_id in (1, 2, 3, 4) and user_id = #{userId}
+		QueryWrapper<UserPaidTrack> userPaidTrackQueryWrapper = new QueryWrapper<>();
+		userPaidTrackQueryWrapper.eq("user_id", userId);
+		userPaidTrackQueryWrapper.in("track_id", needChackTrackIdList);
+		List<UserPaidTrack> userPaidTracks = userPaidTrackMapper.selectList(userPaidTrackQueryWrapper);
+		// 没有查询到，当前用户对于专辑和声音没有购买关系，设置为0
+		if (CollectionUtils.isEmpty(userPaidTracks)) {
+
+			for (Long trackId : needChackTrackIdList) {
+				resultMap.put(trackId, 0);
+			}
+			return resultMap;
+		}
+
+		// 获取用户购买声音列表ID集合
+		List<Long> userPaidTrackIdList = userPaidTracks.stream().map(userPaidTrack -> userPaidTrack.getTrackId()).collect(Collectors.toList());
+
+		// 查询到结果，判断那些声音购买了，那些没有购买，购买的设置为1，没有购买的设置为0
+		for(Long trackId : needChackTrackIdList) {
+
+			if (userPaidTrackIdList.contains(trackId)) {
+				resultMap.put(trackId, 1);
+			} else {
+				resultMap.put(trackId, 0);
+			}
+		}
+		return resultMap;
 	}
 }
