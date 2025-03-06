@@ -8,6 +8,7 @@ import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.service.KafkaService;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.model.user.UserPaidAlbum;
 import com.atguigu.tingshu.model.user.UserPaidTrack;
@@ -107,7 +108,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 				//封装存储
 				result.put("token",token);
 
-	//			System.out.println("openid = " + openid);
+				log.info("[用户服务]微信登陆成功token：{}",token);
 			}
 		} catch (WxErrorException e) {
 			log.error("[用户服务]微信登陆异常：{}",e);
@@ -197,5 +198,26 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 			}
 		}
 		return resultMap;
+	}
+
+	/**
+	 * 验证当前用户是否购买过专辑
+	 * 提供给订单服务调用，验证当前用户是否购买过专辑
+	 * @param albumId
+	 * @return
+	 */
+	@Override
+	public Boolean isPaidAlbum(Long albumId) {
+
+		Long userId = AuthContextHolder.getUserId();
+		// select * from user_paid_album where album_id = #{albumId} and user_id = #{userId}
+		QueryWrapper<UserPaidAlbum> userPaidAlbumQueryWrapper = new QueryWrapper<>();
+		userPaidAlbumQueryWrapper.eq("album_id", albumId);
+		userPaidAlbumQueryWrapper.eq("user_id", userId);
+		Long count = userPaidAlbumMapper.selectCount(userPaidAlbumQueryWrapper);
+		if (count.intValue() > 0) {
+			return true;
+		}
+		return false;
 	}
 }

@@ -41,6 +41,7 @@ public class GuiLoginAspect {
 
         // 获取Token
         String token = request.getHeader("token");
+//        System.out.println("用户token: "+token);
 
         // 定义用户登录存储key
         String loginKey =  RedisConstant.USER_LOGIN_KEY_PREFIX+token;

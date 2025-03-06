@@ -8,10 +8,7 @@ import com.atguigu.tingshu.vo.user.UserInfoVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +21,21 @@ public class UserInfoApiController {
 
 	@Autowired
 	private UserInfoService userInfoService;
+
+	/**
+	 * 判断用户是否购买过指定专辑
+	 * 提供给订单服务调用，验证当前用户是否购买过专辑
+	 * /api/user/userInfo/isPaidAlbum/{albumId}
+	 * @param albumId
+	 * @return
+	 */
+	@GuiLogin
+	@Operation(summary = "提供给订单服务调用，验证当前用户是否购买过专辑")
+	@GetMapping("/userInfo/isPaidAlbum/{albumId}")
+	public Result<Boolean> isPaidAlbum(@PathVariable Long albumId){
+		Boolean isBuy = userInfoService.isPaidAlbum(albumId);
+		return Result.ok(isBuy);
+	}
 
 	/**
 	 * 获取用户声音列表付费情况

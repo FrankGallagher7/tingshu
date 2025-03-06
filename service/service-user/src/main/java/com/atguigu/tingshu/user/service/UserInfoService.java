@@ -36,4 +36,11 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return
      */
     Map<Long, Integer> userIsPaidTrack(Long userId, Long albumId, List<Long> needChackTrackIdList);
+
+    /**
+     * 提供给订单服务调用，验证当前用户是否购买过专辑
+     * @param albumId
+     * @return
+     */
+    Boolean isPaidAlbum(Long albumId);
 }

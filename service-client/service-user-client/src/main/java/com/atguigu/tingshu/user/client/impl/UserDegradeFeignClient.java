@@ -2,6 +2,7 @@ package com.atguigu.tingshu.user.client.impl;
 
 
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.user.VipServiceConfig;
 import com.atguigu.tingshu.user.client.UserFeignClient;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,29 @@ import java.util.Map;
 @Component
 @Slf4j
 public class UserDegradeFeignClient implements UserFeignClient {
+
+
+    /**
+     * 判断用户是否购买过指定专辑
+     * @param albumId
+     * @return
+     */
+    @Override
+    public Result<Boolean> isPaidAlbum(Long albumId) {
+        log.error("[用户服务]提供远程调用方法isPaidAlbum执行服务降级");
+        return null;
+    }
+
+    /**
+     * 根据id获取VIP服务配置信息
+     * @param id
+     * @return
+     */
+    @Override
+    public Result<VipServiceConfig> getVipServiceConfig(Long id) {
+        log.error("[用户服务]提供远程调用方法getVipServiceConfig执行服务降级");
+        return null;
+    }
 
     /**
      * 获取用户声音列表付费情况
