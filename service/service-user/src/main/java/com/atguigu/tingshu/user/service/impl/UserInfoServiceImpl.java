@@ -3,6 +3,7 @@ package com.atguigu.tingshu.user.service.impl;
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
@@ -28,6 +29,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -219,5 +221,26 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * 根据专辑id+用户ID获取用户已购买声音id列表
+	 * @param userId
+	 * @param albumId
+	 * @return
+	 */
+	@Override
+	public List<Long> getUserPaidTrackIdList(Long userId, Long albumId) {
+
+		LambdaQueryWrapper<UserPaidTrack> wrapper = new LambdaQueryWrapper<>();
+		wrapper.eq(UserPaidTrack::getUserId, userId);
+		wrapper.eq(UserPaidTrack::getAlbumId, albumId);
+		List<UserPaidTrack> userPaidTrackList = userPaidTrackMapper.selectList(wrapper);
+		if (CollectionUtil.isNotEmpty(userPaidTrackList)) {
+			// 获取以购买声音id集合
+			List<Long> userPaidTrackIdList = userPaidTrackList.stream().map(userPaidTrack -> userPaidTrack.getTrackId()).collect(Collectors.toList());
+			return userPaidTrackIdList;
+		}
+		return null;
 	}
 }

@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "声音管理")
@@ -30,6 +31,44 @@ public class TrackInfoApiController {
 
 	@Autowired
 	private VodService vodService;
+
+
+	/**根据声音ID+声音数量 获取下单付费声音列表
+	 * 提供给订单服务渲染购买商品（声音）列表-查询当前用户待购买声音列表
+	 * /api/album/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}
+	 * @param trackId    声音ID
+	 * @param trackCount 数量
+	 * @return
+	 */
+	@GuiLogin
+	@Operation(summary = "提供给订单服务渲染购买商品（声音）列表-查询当前用户待购买声音列表")
+	@GetMapping("/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}")
+	public Result<List<TrackInfo>> getWaitBuyTrackInfoList(@PathVariable Long trackId, @PathVariable int trackCount) {
+		Long userId = AuthContextHolder.getUserId();
+		List<TrackInfo> trackInfoList = trackInfoService.getWaitBuyTrackInfoList(userId, trackId, trackCount);
+		return Result.ok(trackInfoList);
+	}
+
+	/**
+	 * 获取当前用户分集购买声音列表
+	 *
+	 * /api/album/trackInfo/findUserTrackPaidList/{trackId}
+	 * Map<String, Object> map = new HashMap<>();
+	 * map.put("name","本集"); // 显示文本
+	 * map.put("price",albumInfo.getPrice()); // 专辑声音对应的价格
+	 * map.put("trackCount",1); // 记录购买集数
+	 * list.add(map);
+	 * @param trackId 声音ID
+	 * @return [{name:"本集", price:0.2, trackCount:1},{name:"后10集", price:2, trackCount:10},...,{name:"全集", price:*, trackCount:*}]
+	 */
+	@GuiLogin
+	@Operation(summary = "获取当前用户分集购买声音列表")
+	@GetMapping("/trackInfo/findUserTrackPaidList/{trackId}")
+	public Result<List<Map<String, Object>>> getUserWaitBuyTrackPayList(@PathVariable Long trackId) {
+		Long userId = AuthContextHolder.getUserId();
+		List<Map<String, Object>> list = trackInfoService.getUserWaitBuyTrackPayList(trackId);
+		return Result.ok(list);
+	}
 
 
 	/**

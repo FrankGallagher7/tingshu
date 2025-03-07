@@ -23,6 +23,22 @@ public class UserInfoApiController {
 	private UserInfoService userInfoService;
 
 	/**
+	 * 根据专辑id+用户ID获取用户已购买声音id列表
+	 * /api/user/userInfo/findUserPaidTrackList/{albumId}
+	 * 提供给专辑服务调用，获取当前用户已购声音集合
+	 * @param albumId
+	 * @return
+	 */
+	@GuiLogin
+	@Operation(summary = "提供给专辑服务调用，获取当前用户已购声音集合")
+	@GetMapping("/userInfo/findUserPaidTrackList/{albumId}")
+	public Result<List<Long>> getUserPaidTrackIdList(@PathVariable Long albumId) {
+		Long userId = AuthContextHolder.getUserId();
+		List<Long> userPaidTrackIdList = userInfoService.getUserPaidTrackIdList(userId, albumId);
+		return Result.ok(userPaidTrackIdList);
+	}
+
+	/**
 	 * 判断用户是否购买过指定专辑
 	 * 提供给订单服务调用，验证当前用户是否购买过专辑
 	 * /api/user/userInfo/isPaidAlbum/{albumId}

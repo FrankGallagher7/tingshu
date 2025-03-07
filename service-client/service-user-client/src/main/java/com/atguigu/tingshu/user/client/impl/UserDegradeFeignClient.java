@@ -17,6 +17,17 @@ public class UserDegradeFeignClient implements UserFeignClient {
 
 
     /**
+     * 根据专辑id+用户ID获取用户已购买声音id列表
+     * @param albumId
+     * @return
+     */
+    @Override
+    public Result<List<Long>> getUserPaidTrackIdList(Long albumId) {
+        log.error("[用户服务]提供远程调用方法getUserPaidTrackIdList执行服务降级");
+        return null;
+    }
+
+    /**
      * 判断用户是否购买过指定专辑
      * @param albumId
      * @return

@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @Tag(name = "订单管理")
 @RestController
 @RequestMapping("api/order")
@@ -23,6 +25,26 @@ public class OrderInfoApiController {
 	@Autowired
 	private OrderInfoService orderInfoService;
 
+
+
+	/**
+	 * 提交订单
+	 * /api/order/orderInfo/submitOrder
+	 * @param orderInfoVo
+	 * @return
+	 */
+	@PostMapping("/orderInfo/submitOrder")
+	@Operation(summary = "提交订单，可能包含余额支付")
+	@GuiLogin
+	public Result<Map<String,String>> submitOrder(@RequestBody OrderInfoVo orderInfoVo) {
+
+		// 获取用户id
+		Long userId = AuthContextHolder.getUserId();
+
+		// 保存订单
+		Map<String, String> resultMap = orderInfoService.submitOrder(orderInfoVo, userId);
+		return Result.ok(resultMap);
+	}
 
 	/**
 	 * 订单确认

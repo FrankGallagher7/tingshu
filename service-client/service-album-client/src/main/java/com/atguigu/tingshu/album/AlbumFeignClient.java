@@ -2,10 +2,7 @@ package com.atguigu.tingshu.album;
 
 import com.atguigu.tingshu.album.impl.AlbumDegradeFeignClient;
 import com.atguigu.tingshu.common.result.Result;
-import com.atguigu.tingshu.model.album.AlbumInfo;
-import com.atguigu.tingshu.model.album.BaseCategory1;
-import com.atguigu.tingshu.model.album.BaseCategory3;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
 import com.atguigu.tingshu.vo.album.AlbumStatVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +19,16 @@ import java.util.List;
  */
 @FeignClient(value = "service-album", fallback = AlbumDegradeFeignClient.class)
 public interface AlbumFeignClient {
+
+    /**根据声音ID+声音数量 获取下单付费声音列表
+     * 提供给订单服务渲染购买商品（声音）列表-查询当前用户待购买声音列表
+     * /api/album/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}
+     * @param trackId    声音ID
+     * @param trackCount 数量
+     * @return
+     */
+    @GetMapping("/api/album/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}")
+    public Result<List<TrackInfo>> getWaitBuyTrackInfoList(@PathVariable Long trackId, @PathVariable int trackCount);
 
     /**
      * 查询所有一级分类列表

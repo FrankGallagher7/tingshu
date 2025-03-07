@@ -20,24 +20,31 @@ public class SignHelper {
      */
     public static void checkSign(Map<String, Object> parameterMap){
         //校验签名时间
+        //获取签名生成的时间戳
         Long remoteTimestamp = (Long)parameterMap.get("timestamp");
+        //判断是否为空
         if(StringUtils.isEmpty(remoteTimestamp)){
             throw new GuiguException(ResultCodeEnum.SIGN_ERROR);
         }
+        //获取当前时间戳
         long currentTimestamp = getTimestamp();
+        //超时判断
         if (Math.abs(currentTimestamp - remoteTimestamp) > 500000) {
             log.error("签名已过期，服务器当前时间:{}", currentTimestamp);
             throw new GuiguException(ResultCodeEnum.SIGN_OVERDUE);
         }
 
         //校验签名
+        //获取原来的签名
         String signRemote = (String)parameterMap.get("sign");
 
+        //获取当前加密后的签名
         String signLocal = getSign(parameterMap);
+        //如果之前为空，抛出异常
         if(StringUtils.isEmpty(signRemote)){
             throw new GuiguException(ResultCodeEnum.SIGN_ERROR);
         }
-
+        //校验两个签名是否一致
         if(!signRemote.equals(signLocal)){
             throw new GuiguException(ResultCodeEnum.SIGN_ERROR);
         }

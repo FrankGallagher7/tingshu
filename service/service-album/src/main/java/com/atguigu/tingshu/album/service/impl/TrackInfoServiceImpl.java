@@ -1,6 +1,7 @@
 package com.atguigu.tingshu.album.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
 import com.alibaba.nacos.common.utils.StringUtils;
 import com.atguigu.tingshu.album.AlbumFeignClient;
@@ -10,6 +11,7 @@ import com.atguigu.tingshu.album.mapper.TrackStatMapper;
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.album.service.VodService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
@@ -21,6 +23,7 @@ import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -31,9 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -299,5 +300,177 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 			}
 		}
 		return albumTrackPage;
+	}
+
+	/**
+	 * 获取当前用户分集购买声音列表
+	 * @param trackId
+	 * @return
+	 */
+	@Override
+	public List<Map<String, Object>> getUserWaitBuyTrackPayList(Long trackId) {
+
+		//1.根据声音ID查询声音对象-得到专辑ID跟声音序号
+		TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+		//2.根据专辑ID+当前声音序号查询大于当前声音待购买声音列表
+		LambdaQueryWrapper<TrackInfo> queryWrapper = new LambdaQueryWrapper<>();
+		queryWrapper.eq(TrackInfo::getAlbumId, trackInfo.getAlbumId());
+		queryWrapper.ge(TrackInfo::getOrderNum, trackInfo.getOrderNum());
+
+		List<TrackInfo> waitBuyTrackList = trackInfoMapper.selectList(queryWrapper);
+		if (CollectionUtil.isEmpty(waitBuyTrackList)) {
+			throw new GuiguException(400, "该专辑下没有符合购买要求声音");
+		}
+		//3.远程调用"用户服务"获取用户已购买声音ID集合
+		List<Long> userPaidTrackIdList = userFeignClient.getUserPaidTrackIdList(trackInfo.getAlbumId()).getData();
+
+		//4.将待购买声音列表中用户已购买声音排除掉-得到实际代购买声音列表
+		if (CollectionUtil.isNotEmpty(userPaidTrackIdList)) {
+			waitBuyTrackList = waitBuyTrackList.stream().filter(waitTrackInfo -> !userPaidTrackIdList.contains(waitTrackInfo.getId())) //排除掉已购声音ID
+					.collect(Collectors.toList());
+		}
+		//5.基于实际购买声音列表长度，动态构建分集购买对象
+		List<Map<String, Object>> mapList = new ArrayList<>();
+		if (CollectionUtil.isNotEmpty(waitBuyTrackList)) {
+			//5.1 根据专辑ID查询专辑得到单集价格
+			AlbumInfo albumInfo = albumInfoMapper.selectById(trackInfo.getAlbumId());
+			Assert.notNull(albumInfo, "查询专辑信息id：{}出现异常", trackInfo.getAlbumId());
+			BigDecimal price = albumInfo.getPrice();
+			//5.1 构建本集购买对象
+			Map<String, Object> currMap = new HashMap<>();
+			currMap.put("name", "本集"); // 显示文本
+			currMap.put("price", price); // 专辑声音对应的价格
+			currMap.put("trackCount", 1); // 记录购买集数
+			mapList.add(currMap);
+			//5.2 判断待购买声音数量 数量<10 动态展示后count集合 价格=count*price 数量=count
+			int count = waitBuyTrackList.size();
+
+			//5.3 数量>=10 固定显示后10集 价格=10*price 数量=10
+			//if (count >= 10) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后10集");
+			//    map.put("price", price.multiply(new BigDecimal("10")));
+			//    map.put("trackCount", 10);
+			//    mapList.add(map);
+			//}
+			////5.3 数量>10 and 数量<20 动态展示：后count集合（全集） 价格=count*price 数量=count  相当于全集
+			//if (count > 10 && count < 20) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后"+count+"集(全集)");
+			//    map.put("price", price.multiply(new BigDecimal(count)));
+			//    map.put("trackCount", count);
+			//    mapList.add(map);
+			//}
+			//
+			////5.4 数量>=20 固定显示后20集 价格=20*price 数量=20
+			//if (count >= 20) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后20集");
+			//    map.put("price", price.multiply(new BigDecimal("20")));
+			//    map.put("trackCount", 20);
+			//    mapList.add(map);
+			//}
+			////5.4 数量>20 and 数量<30 动态展示：后count集合（全集） 价格=count*price 数量=count  相当于全集
+			//if (count > 20 && count < 30) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后"+count+"集(全集)");
+			//    map.put("price", price.multiply(new BigDecimal(count)));
+			//    map.put("trackCount", count);
+			//    mapList.add(map);
+			//}
+			////5.5 数量>=30 固定显示后30集 价格=30*price 数量=30
+			//if (count >= 30) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后30集");
+			//    map.put("price", price.multiply(new BigDecimal("30")));
+			//    map.put("trackCount", 30);
+			//    mapList.add(map);
+			//}
+			////5.5 数量>30 and 数量<40 动态展示：后count集合（全集） 价格=count*price 数量=count  相当于全集
+			//if (count > 30 && count < 40) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后"+count+"集(全集)");
+			//    map.put("price", price.multiply(new BigDecimal(count)));
+			//    map.put("trackCount", count);
+			//    mapList.add(map);
+			//}
+			//
+			////5.5 数量>=40 固定显示后40集 价格=40*price 数量=40
+			//if (count >= 40) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后40集");
+			//    map.put("price", price.multiply(new BigDecimal("40")));
+			//    map.put("trackCount", 40);
+			//    mapList.add(map);
+			//}
+			////5.5 数量>40 and 数量<50 动态展示：后count集合（全集） 价格=count*price 数量=count  相当于全集
+			//if (count > 40 && count < 50) {
+			//    Map<String, Object> map = new HashMap<>();
+			//    map.put("name", "后"+count+"集(全集)");
+			//    map.put("price", price.multiply(new BigDecimal(count)));
+			//    map.put("trackCount", count);
+			//    mapList.add(map);
+			//}
+
+			// 18
+			// 如果 count 在 1到10 之间，直接添加“后X集”选项
+//
+			for (int i = 10; i <= 50; i += 10) {
+				//判断数量>i 固定显示后i集
+				if (count > i) {
+					Map<String, Object> map = new HashMap<>();
+					map.put("name", "后" + i + "集");
+					map.put("price", price.multiply(new BigDecimal(i)));
+					map.put("trackCount", i);
+					mapList.add(map);
+				} else {
+					//反之全集（动态构建后count集合）
+					Map<String, Object> map = new HashMap<>();
+					map.put("name", "后" + count + "集");
+					map.put("price", price.multiply(new BigDecimal(count)));
+					map.put("trackCount", count);
+					mapList.add(map);
+					break;
+				}
+			}
+			}
+		return mapList;
+	}
+
+
+	/**
+	 * 查询当前用户待购买声音列表（加用户已购买声音排除掉）
+	 * @param userId
+	 * @param trackId
+	 * @param trackCount
+	 * @return
+	 */
+	@Override
+	public List<TrackInfo> getWaitBuyTrackInfoList(Long userId, Long trackId, int trackCount) {
+		//1.根据声音ID查询声音对象-得到专辑ID跟声音序号
+		TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+
+		//2.远程调用"用户服务"获取用户已购买声音ID集合
+		List<Long> userPaidTrackIdList = userFeignClient.getUserPaidTrackIdList(trackInfo.getAlbumId()).getData();
+
+		//3.根据专辑ID+当前声音序号查询大于当前声音待购买声音列表
+		LambdaQueryWrapper<TrackInfo> queryWrapper = new LambdaQueryWrapper<>();
+		queryWrapper.eq(TrackInfo::getAlbumId, trackInfo.getAlbumId());
+		queryWrapper.ge(TrackInfo::getOrderNum, trackInfo.getOrderNum());
+		//3.1 去掉已购买过声音
+		if(CollectionUtil.isNotEmpty(userPaidTrackIdList)){
+			queryWrapper.notIn(TrackInfo::getId, userPaidTrackIdList);
+		}
+		//3.2 限制购买数量(用户选择购买数量)
+		queryWrapper.last("limit "+trackCount);
+		//3.3 只查询指定列：封面图片、声音名称、声音ID、所属专辑ID
+		queryWrapper.select(TrackInfo::getId, TrackInfo::getTrackTitle, TrackInfo::getCoverUrl, TrackInfo::getAlbumId);
+		//3.4 对声音进行排序：按照序号升序
+		queryWrapper.orderByAsc(TrackInfo::getOrderNum);
+		List<TrackInfo> waitBuyTrackList = trackInfoMapper.selectList(queryWrapper);
+		if (CollectionUtil.isEmpty(waitBuyTrackList)) {
+			throw new GuiguException(400, "该专辑下没有符合购买要求声音");
+		}
+		return waitBuyTrackList;
 	}
 }

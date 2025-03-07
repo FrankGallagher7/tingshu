@@ -8,6 +8,9 @@ import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+import java.util.Map;
+
 public interface TrackInfoService extends IService<TrackInfo> {
 
     /**
@@ -54,4 +57,20 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     Page<AlbumTrackListVo> getAlbumTrackPage(Page<AlbumTrackListVo> pageInfo, Long albumId, Long userId);
+
+    /**
+     * 获取当前用户分集购买声音列表
+     * @param trackId
+     * @return
+     */
+    List<Map<String, Object>> getUserWaitBuyTrackPayList(Long trackId);
+
+    /**
+     * 查询当前用户待购买声音列表（加用户已购买声音排除掉）
+     * @param userId
+     * @param trackId
+     * @param trackCount
+     * @return
+     */
+    List<TrackInfo> getWaitBuyTrackInfoList(Long userId, Long trackId, int trackCount);
 }
