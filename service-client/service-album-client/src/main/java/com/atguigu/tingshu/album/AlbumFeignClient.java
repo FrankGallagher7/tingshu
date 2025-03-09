@@ -20,7 +20,8 @@ import java.util.List;
 @FeignClient(value = "service-album", fallback = AlbumDegradeFeignClient.class)
 public interface AlbumFeignClient {
 
-    /**根据声音ID+声音数量 获取下单付费声音列表
+    /**
+     * 根据声音ID+声音数量 获取下单付费声音列表
      * 提供给订单服务渲染购买商品（声音）列表-查询当前用户待购买声音列表
      * /api/album/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}
      * @param trackId    声音ID
@@ -29,6 +30,16 @@ public interface AlbumFeignClient {
      */
     @GetMapping("/api/album/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}")
     public Result<List<TrackInfo>> getWaitBuyTrackInfoList(@PathVariable Long trackId, @PathVariable int trackCount);
+
+    /**
+     * 查询声音信息
+     * 根据id查询声音详情
+     * /api/album/trackInfo/getTrackInfo/{id}
+     * @param id
+     * @return
+     */
+    @GetMapping("/api/album/trackInfo/getTrackInfo/{id}")
+    public Result<TrackInfo> getTrackInfo(@PathVariable Long id);
 
     /**
      * 查询所有一级分类列表

@@ -3,7 +3,9 @@ package com.atguigu.tingshu.user.client;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.user.VipServiceConfig;
 import com.atguigu.tingshu.user.client.impl.UserDegradeFeignClient;
+import com.atguigu.tingshu.vo.account.AccountLockVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,17 @@ import java.util.Map;
  */
 @FeignClient(value = "service-user", fallback = UserDegradeFeignClient.class)
 public interface UserFeignClient {
+
+
+    /**
+     * 接口登录/未登录均可调用（微信支付成功后，需要在异步回调（没有Token），调用该方法处理购买记录）
+     * 处理用户购买记录（虚拟物品发货）
+     *  /api/user/userInfo/savePaidRecord
+     * @param userPaidRecordVo
+     * @return
+     */
+    @PostMapping("/api/user/userInfo/savePaidRecord")
+    public Result savePaidRecord(@RequestBody UserPaidRecordVo userPaidRecordVo);
 
 
     /**

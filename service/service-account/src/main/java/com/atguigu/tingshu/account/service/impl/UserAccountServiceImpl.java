@@ -4,8 +4,10 @@ import com.atguigu.tingshu.account.mapper.UserAccountDetailMapper;
 import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
+import com.atguigu.tingshu.vo.account.AccountLockVo;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +51,7 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 
 	/**
 	 * 初始化账户记录
+	 * 账户明细
 	 * @param userId
 	 * @param title
 	 * @param tradeType
@@ -85,5 +88,30 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 			return availableAmount;
 		}
 		return null;
+	}
+
+	/**
+	 * 检查及扣减账户余额
+	 * @param accountDeductVo
+	 */
+	@Override
+	public void checkAndDeduct(AccountLockVo accountDeductVo) {
+
+		// 扣减账户余额
+		int count = userAccountMapper.checkAndDeduct(accountDeductVo.getAmount(), accountDeductVo.getUserId());
+
+		// 判断是否扣减成功
+		if (count == 0) {
+			throw new GuiguException(400, "账户余额不足");
+		}
+
+		// 新增账户记录
+		this.saveUserAccountDetail(
+				accountDeductVo.getUserId(),
+				accountDeductVo.getContent(), // 锁定内容
+				SystemConstant.ACCOUNT_TRADE_TYPE_MINUS, //消费
+				accountDeductVo.getAmount(), //扣减金额
+				accountDeductVo.getOrderNo() //订单号
+		);
 	}
 }

@@ -5,6 +5,7 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,27 @@ public class UserInfoApiController {
 
 	@Autowired
 	private UserInfoService userInfoService;
+
+	/**
+	 * 接口登录/未登录均可调用（微信支付成功后，需要在异步回调（没有Token），调用该方法处理购买记录）
+	 * 处理用户购买记录（虚拟物品发货）
+	 * /api/user/userInfo/savePaidRecord
+	 * @param userPaidRecordVo
+	 * @return
+	 */
+	@GuiLogin
+	@Operation(summary = "处理用户购买记录（虚拟物品发货）")
+	@PostMapping("/userInfo/savePaidRecord")
+	public Result savePaidRecord(@RequestBody UserPaidRecordVo userPaidRecordVo) {
+		//1.获取登录用户ID
+		Long userId = AuthContextHolder.getUserId();
+		if (userId != null) {
+			userPaidRecordVo.setUserId(userId);
+		}
+		//2.调用业务逻辑处理用户购买记录
+		userInfoService.savePaidRecord(userPaidRecordVo);
+		return Result.ok();
+	}
 
 	/**
 	 * 根据专辑id+用户ID获取用户已购买声音id列表

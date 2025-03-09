@@ -14,9 +14,26 @@ import java.util.List;
 @Slf4j
 public class AlbumDegradeFeignClient implements AlbumFeignClient {
 
+    /**
+     * 根据声音ID+声音数量 获取下单付费声音列表
+     * 提供给订单服务渲染购买商品（声音）列表-查询当前用户待购买声音列表
+     * @param trackId    声音ID
+     * @param trackCount 数量
+     * @return
+     */
     @Override
     public Result<List<TrackInfo>> getWaitBuyTrackInfoList(Long trackId, int trackCount) {
         log.error("[专辑模块]提供远程调用方法getWaitBuyTrackInfoList服务降级");
+        return null;
+    }
+
+    /**
+     * 根据id查询声音详情
+     * @param id
+     * @return
+     */
+    @Override
+    public Result<TrackInfo> getTrackInfo(Long id) {
         return null;
     }
 

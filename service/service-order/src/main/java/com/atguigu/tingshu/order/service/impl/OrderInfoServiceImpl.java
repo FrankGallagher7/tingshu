@@ -281,25 +281,29 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         OrderInfo orderInfo = this.saveOrderInfo(orderInfoVo, userId);
         //4.处理余额付款 支付方式：1103 余额支付
     if (SystemConstant.ORDER_PAY_ACCOUNT.equals(orderInfoVo.getPayWay())) {
-        // 4.1 TODO 余额支付-远程调用账户服务扣减账户余额
+
+        // 4.1 余额支付-远程调用账户服务扣减账户余额
         AccountLockVo accountDeductVo = new AccountLockVo();
         accountDeductVo.setOrderNo(orderInfo.getOrderNo()); //订单号
         accountDeductVo.setUserId(userId); //用户id
         accountDeductVo.setAmount(orderInfo.getOrderAmount()); //优惠后的金额
         accountDeductVo.setContent(orderInfo.getOrderTitle()); //标题-账户明细-付费项目
+
         //扣减成功虚拟发货-远程调用账户服务更新账户
         Result deductResult = accountFeignClient.checkAndDeduct(accountDeductVo);
         if (200 != deductResult.getCode()) {
             //扣减余额失败：全局事务都需要回滚
             throw new GuiguException(ResultCodeEnum.ACCOUNT_LESS);
         }
-        // 4.2 TODO 虚拟物品发货-远程调用用户服务新增购买记录  声音 专辑 VIP
+
+        // 4.2  虚拟物品发货-远程调用用户服务新增购买记录  声音 专辑 VIP
         UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
         userPaidRecordVo.setOrderNo(orderInfo.getOrderNo()); //订单号
         userPaidRecordVo.setUserId(userId);  //用户id
         userPaidRecordVo.setItemType(orderInfo.getItemType()); //付款项目类型
-        List<Long> itemIdList = orderInfoVo.getOrderDetailVoList().stream().map(OrderDetailVo::getItemId).collect(Collectors.toList());
+        List<Long> itemIdList = orderInfoVo.getOrderDetailVoList().stream().map(OrderDetailVo::getItemId).collect(Collectors.toList()); // 物品id
         userPaidRecordVo.setItemIdList(itemIdList); //物品id(声音 专辑 VIP)
+
         //虚拟物品发货-远程调用用户服务新增购买记录
         Result paidRecordResult = userFeignClient.savePaidRecord(userPaidRecordVo);
         if (200 != paidRecordResult.getCode()) {
