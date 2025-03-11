@@ -3,16 +3,15 @@ package com.atguigu.tingshu.order.api;
 import com.atguigu.tingshu.common.login.GuiLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.order.service.OrderInfoService;
 import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -24,6 +23,36 @@ public class OrderInfoApiController {
 
 	@Autowired
 	private OrderInfoService orderInfoService;
+	/**
+	 * 分页获取当前用户订单列表
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	@GuiLogin
+	@Operation(summary = "分页获取当前用户订单列表")
+	@GetMapping("/orderInfo/findUserPage/{page}/{limit}")
+	public Result<Page<OrderInfo>> getUserOrderByPage(@PathVariable int page, @PathVariable int limit){
+		Long userId = AuthContextHolder.getUserId();
+		Page<OrderInfo> pageInfo = new Page<>(page, limit);
+		pageInfo = orderInfoService.getUserOrderByPage(pageInfo, userId);
+		return Result.ok(pageInfo);
+	}
+
+	/**
+	 * 查询当前用户指定订单信息
+	 * /api/order/orderInfo/getOrderInfo/{orderNo}
+	 * 根据订单号获取订单相关信息
+	 * @param orderNo
+	 * @return
+	 */
+	@GuiLogin
+	@GetMapping("/orderInfo/getOrderInfo/{orderNo}")
+	public Result<OrderInfo> getOrderInfo(@PathVariable("orderNo") String orderNo) {
+		Long userId = AuthContextHolder.getUserId();
+		OrderInfo orderInfo = orderInfoService.getOrderInfo(userId, orderNo);
+		return Result.ok(orderInfo);
+	}
 
 
 

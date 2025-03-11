@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -265,6 +266,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 	 * 处理不同购买项：VIP会员，专辑、声音
 	 * @param userPaidRecordVo
 	 */
+	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void savePaidRecord(UserPaidRecordVo userPaidRecordVo) {
 //1.判断购买项目类型-处理专辑

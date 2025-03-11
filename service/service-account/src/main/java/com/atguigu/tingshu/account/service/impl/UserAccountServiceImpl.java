@@ -13,6 +13,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -95,6 +96,7 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 	 * @param accountDeductVo
 	 */
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public void checkAndDeduct(AccountLockVo accountDeductVo) {
 
 		// 扣减账户余额
@@ -102,8 +104,9 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 
 		// 判断是否扣减成功
 		if (count == 0) {
-			throw new GuiguException(400, "账户余额不足");
+			throw new GuiguException(400, "账户扣减异常");
 		}
+//		int i=1/0;
 
 		// 新增账户记录
 		this.saveUserAccountDetail(

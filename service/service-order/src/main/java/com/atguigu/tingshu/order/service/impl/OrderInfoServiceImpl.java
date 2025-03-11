@@ -7,8 +7,10 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.IdUtil;
 import com.atguigu.tingshu.account.AccountFeignClient;
 import com.atguigu.tingshu.album.AlbumFeignClient;
+import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.delay.DelayMsgService;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.result.ResultCodeEnum;
@@ -31,7 +33,10 @@ import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -69,6 +74,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Autowired
     private AccountFeignClient accountFeignClient;
+
+    @Autowired
+    private DelayMsgService delayMsgService;
 
 
     /**
@@ -255,6 +263,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
      * @param userId
      * @return
      */
+    @GlobalTransactional(rollbackFor = Exception.class)
     @Override
     public Map<String, String> submitOrder(OrderInfoVo orderInfoVo, Long userId) {
         //1.业务校验-验证流水号-解决订单重复提交问题
@@ -315,6 +324,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfo.setUpdateTime(new Date()); //支付成功时间
         orderInfoMapper.updateById(orderInfo);
     }
+        //7.发送延迟消息-完成订单延迟关单
+        delayMsgService.sendDelayMessage(
+                KafkaConstant.QUEUE_ORDER_CANCEL,
+                orderInfo.getId().toString(),
+                15); // 测试30秒
         //5.响应提交成功订单编号
         Map<String, String> mapResult = new HashMap<>();
         mapResult.put("orderNo", orderInfo.getOrderNo());
@@ -371,4 +385,99 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         return orderInfo;
     }
 
-}
+    /**
+     * 查询当前用户指定订单信息-根据订单号
+     * @param userId
+     * @param orderNo
+     * @return
+     */
+    @Override
+    public OrderInfo getOrderInfo(Long userId, String orderNo) {
+        //1.根据订单编号查询订单信息
+        LambdaQueryWrapper<OrderInfo> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(OrderInfo::getOrderNo, orderNo);
+        OrderInfo orderInfo = orderInfoMapper.selectOne(queryWrapper);
+        if(orderInfo!=null){
+            //2.跟订单ID查询订单明细列表
+            LambdaQueryWrapper<OrderDetail> orderDetailLambdaQueryWrapper = new LambdaQueryWrapper<>();
+            orderDetailLambdaQueryWrapper.eq(OrderDetail::getOrderId, orderInfo.getId());
+            List<OrderDetail> orderDetailList = orderDetailMapper.selectList(orderDetailLambdaQueryWrapper);
+            orderInfo.setOrderDetailList(orderDetailList);
+
+            //3.跟订单ID查询订单优惠列表
+            LambdaQueryWrapper<OrderDerate> orderDerateLambdaQueryWrapper = new LambdaQueryWrapper<>();
+            orderDerateLambdaQueryWrapper.eq(OrderDerate::getOrderId, orderInfo.getId());
+            List<OrderDerate> orderDerateList = orderDerateMapper.selectList(orderDerateLambdaQueryWrapper);
+            orderInfo.setOrderDerateList(orderDerateList);
+
+            //4.设置订单支付状态及支付方式：中文
+            orderInfo.setOrderStatusName(this.getOrderStatusName(orderInfo.getOrderStatus()));
+            orderInfo.setPayWayName(this.getPayWayName(orderInfo.getPayWay()));
+            return orderInfo;
+        }
+        return null;
+    }
+
+    /**
+     * 分页获取当前用户订单列表
+     * @param pageInfo
+     * @param userId
+     * @return
+     */
+    @Override
+    public Page<OrderInfo> getUserOrderByPage(Page<OrderInfo> pageInfo, Long userId) {
+        //1.调用持久层获取订单分页列表
+        pageInfo = orderInfoMapper.getUserOrderByPage1(pageInfo, userId);
+        //2.遍历处理订单状态、订单付费方式中文
+        pageInfo.getRecords().forEach(orderInfo -> {
+            orderInfo.setOrderStatusName(getOrderStatusName(orderInfo.getOrderStatus())); // 订单状态
+            orderInfo.setPayWayName(getPayWayName(orderInfo.getPayWay())); // 支付方式
+        });
+        return pageInfo;
+    }
+
+    /**
+     * 延迟取消订单取消订单
+     * @param aLong
+     */
+    @Override
+    public void orderCanncal(Long valueOf) {
+        //1.根据订单ID查询订单状态
+        OrderInfo orderInfo = orderInfoMapper.selectById(valueOf);
+        if (orderInfo != null && SystemConstant.ORDER_STATUS_UNPAID.equals(orderInfo.getOrderStatus())) {
+            //2.如果订单为未支付，说明超时未付款-修改为关闭
+            orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_CANCEL);
+            orderInfoMapper.updateById(orderInfo);
+        }
+    }
+
+    // 处理订单状态
+    private String getOrderStatusName(String orderStatus) {
+        if (SystemConstant.ORDER_STATUS_UNPAID.equals(orderStatus)) {
+            return "未支付";
+        } else if (SystemConstant.ORDER_STATUS_PAID.equals(orderStatus)) {
+            return "已支付";
+        } else if (SystemConstant.ORDER_STATUS_CANCEL.equals(orderStatus)) {
+            return "取消";
+        }
+        return null;
+    }
+
+    /**
+     * 根据支付方式编号得到支付名称
+     *
+     * @param payWay
+     * @return
+     */
+    private String getPayWayName(String payWay) {
+        if (SystemConstant.ORDER_PAY_WAY_WEIXIN.equals(payWay)) {
+            return "微信";
+        } else if (SystemConstant.ORDER_PAY_ACCOUNT.equals(payWay)) {
+            return "余额";
+        } else if (SystemConstant.ORDER_PAY_WAY_ALIPAY.equals(payWay)) {
+            return "支付宝";
+        }
+        return "";
+    }
+    }
+

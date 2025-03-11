@@ -1,7 +1,11 @@
 package com.atguigu.tingshu.order.client;
 
+import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.order.client.impl.OrderDegradeFeignClient;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * <p>
@@ -12,6 +16,16 @@ import org.springframework.cloud.openfeign.FeignClient;
  */
 @FeignClient(value = "service-order", fallback = OrderDegradeFeignClient.class)
 public interface OrderFeignClient {
+
+    /**
+     * 查询当前用户指定订单信息
+     * /api/order/orderInfo/getOrderInfo/{orderNo}
+     * 根据订单号获取订单相关信息
+     * @param orderNo
+     * @return
+     */
+    @GetMapping("/api/order/orderInfo/getOrderInfo/{orderNo}")
+    public Result<OrderInfo> getOrderInfo(@PathVariable("orderNo") String orderNo);
 
 
 }
