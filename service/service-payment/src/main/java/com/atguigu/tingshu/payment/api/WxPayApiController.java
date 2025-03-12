@@ -5,12 +5,10 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.payment.service.WxPayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -22,6 +20,36 @@ public class WxPayApiController {
 
     @Autowired
     private WxPayService wxPayService;
+
+
+    /**
+     * 提供给微信支付进行异步回调接口
+     *
+     * @param
+     * @return
+     */
+    @Operation(summary = "提供给微信支付进行异步回调接口")
+    @PostMapping("/wxPay/notify")
+    public Map<String, String> paySuccessNotify(HttpServletRequest request) {
+        Map<String, String> mapResult = wxPayService.paySuccessNotify(request);
+        return mapResult;
+    }
+
+    /**
+     * 支付状态查询--假设直接成功--异步回调实现不了
+     * /api/payment/wxPay/queryPayStatus/{orderNo}
+     * 小程序轮询查询支付结果-根据商户订单编号查询交易状态
+     *
+     * @param orderNo
+     * @return
+     */
+    @Operation(summary = "小程序轮询查询支付结果-根据商户订单编号查询交易状态")
+    @GetMapping("/wxPay/queryPayStatus/{orderNo}")
+    public Result<Boolean> queryPayStatus(@PathVariable String orderNo) {
+        Boolean isPay = wxPayService.queryPayStatus(orderNo);
+        return Result.ok(isPay);
+    }
+
     /**
      * 微信下单
      * 获取微信小程序拉起本地微信支付所需要参数

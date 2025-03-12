@@ -4,6 +4,7 @@ import cn.hutool.core.lang.Assert;
 import com.atguigu.tingshu.account.AccountFeignClient;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.account.RechargeInfo;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.model.payment.PaymentInfo;
@@ -13,8 +14,11 @@ import com.atguigu.tingshu.payment.service.PaymentInfoService;
 import com.atguigu.tingshu.user.client.UserFeignClient;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.wechat.pay.java.service.payments.model.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
 
 @Service
 @SuppressWarnings({"all"})
@@ -26,6 +30,9 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
 
     @Autowired
     private AccountFeignClient accountFeignClient;
+
+    @Autowired
+    private PaymentInfoMapper paymentInfoMapper;
 
 
     /**
@@ -78,5 +85,52 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
         //3.保存本地交易记录且返回
         this.save(paymentInfoDB);
         return paymentInfoDB;
+    }
+
+    /***
+     * 用户付款成功后，修改本地交易记录
+     * @param transaction
+     */
+    @Override
+    public void updatePaymentInfoSuccess(Transaction transaction) {
+        //1.根据订单编号查询本地交易记录状态
+        String orderNo = transaction.getOutTradeNo();
+        // 构建查询条件
+        LambdaQueryWrapper<PaymentInfo> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(PaymentInfo::getOrderNo, orderNo);
+        PaymentInfo paymentInfo = paymentInfoMapper.selectOne(queryWrapper);
+
+        if (SystemConstant.PAYMENT_STATUS_PAID.equals(paymentInfo.getPaymentStatus())) {
+            //如果已支付：返回即可
+            return;
+        }
+        //2.修改本地交易记录
+        //2.1 本地交易记录关联微信支付交易ID
+        paymentInfo.setOutTradeNo(transaction.getTransactionId());
+        //2.2 更新回调时间，及回调内容
+        paymentInfo.setCallbackTime(new Date());
+        paymentInfo.setCallbackContent(transaction.toString());
+        //2.3 将本地交易支付状态：已支付
+        paymentInfo.setPaymentStatus(SystemConstant.PAYMENT_STATUS_PAID);
+        // 更新支付记录
+        paymentInfoMapper.updateById(paymentInfo);
+
+        //3.todo 远程调用订单服务/账户服务 完成订单/充值状态变更：已支付
+        //3.1 判断支付类型：1301-订单
+        if (SystemConstant.PAYMENT_TYPE_ORDER.equals(paymentInfo.getPaymentType())) {
+            Result result = orderFeignClient.orderPaySuccess(orderNo);
+            if (200 != result.getCode()) {
+                throw new GuiguException(500, "远程修改订单状态异常：" + orderNo);
+            }
+        }
+
+        //3.2 TODO 判断支付类型：1302-充值
+        if (SystemConstant.PAYMENT_TYPE_RECHARGE.equals(paymentInfo.getPaymentType())) {
+            Result result = accountFeignClient.rechargePaySuccess(orderNo);
+            if (200 != result.getCode()) {
+                throw new GuiguException(500, "远程修改余额异常：" + orderNo);
+            }
+        }
+
     }
 }

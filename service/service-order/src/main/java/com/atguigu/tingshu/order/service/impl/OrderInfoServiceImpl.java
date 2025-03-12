@@ -289,7 +289,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         //3.保存订单及订单明细、优惠明细
         OrderInfo orderInfo = this.saveOrderInfo(orderInfoVo, userId);
         //4.处理余额付款 支付方式：1103 余额支付
-    if (SystemConstant.ORDER_PAY_ACCOUNT.equals(orderInfoVo.getPayWay())) {
+    if (SystemConstant.ORDER_PAY_ACCOUNT.equals(orderInfoVo.getPayWay())) { //余额支付
 
         // 4.1 余额支付-远程调用账户服务扣减账户余额
         AccountLockVo accountDeductVo = new AccountLockVo();
@@ -437,14 +437,14 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     /**
-     * 延迟取消订单取消订单
+     * 监听器-延迟取消订单取消订单
      * @param aLong
      */
     @Override
     public void orderCanncal(Long valueOf) {
         //1.根据订单ID查询订单状态
         OrderInfo orderInfo = orderInfoMapper.selectById(valueOf);
-        if (orderInfo != null && SystemConstant.ORDER_STATUS_UNPAID.equals(orderInfo.getOrderStatus())) {
+        if (orderInfo != null && SystemConstant.ORDER_STATUS_UNPAID.equals(orderInfo.getOrderStatus())) { // 未支付
             //2.如果订单为未支付，说明超时未付款-修改为关闭
             orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_CANCEL);
             orderInfoMapper.updateById(orderInfo);
