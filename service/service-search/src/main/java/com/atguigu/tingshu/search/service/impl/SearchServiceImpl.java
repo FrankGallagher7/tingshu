@@ -195,7 +195,7 @@ public class SearchServiceImpl implements SearchService {
 //        albumInfoIndex.setCategory1Id(baseCategoryView.getData().getCategory1Id());
 //        albumInfoIndex.setCategory2Id(baseCategoryView.getData().getCategory2Id());
 //
-//        //5.TODO 封装统计信息，采用产生随机值 以及专辑热度
+//
 //        //5.1 随机为专辑产生播放量，订阅量，购买量，评论量 、
 //        int num1 = RandomUtil.randomInt(1000, 2000);
 //        int num2 = RandomUtil.randomInt(500, 1000);

@@ -1,7 +1,9 @@
 package com.atguigu.tingshu.account.service;
 
 import com.atguigu.tingshu.model.account.UserAccount;
+import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.vo.account.AccountLockVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.math.BigDecimal;
@@ -38,4 +40,25 @@ public interface UserAccountService extends IService<UserAccount> {
      * @param accountDeductVo
      */
     void checkAndDeduct(AccountLockVo accountDeductVo);
+
+    /**
+     * 用户充值，支付成功后，充值业务处理
+     * @param orderNo
+     */
+    void rechargePaySuccess(String orderNo);
+
+
+    /**
+     * 分页查询当前用户充值记录
+     * @param pageInfo
+     * @param tradeType
+     */
+    void getUserAccountDetailPage(Page<UserAccountDetail> pageInfo, String tradeType);
+
+    /**
+     * 分页查询当前用户消费记录
+     * @param pageInfo
+     * @param accountTradeTypeMinus
+     */
+    void getUserConsumePage(Page<UserAccountDetail> pageInfo, String tradeType);
 }

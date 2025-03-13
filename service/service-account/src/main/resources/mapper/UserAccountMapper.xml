@@ -12,6 +12,7 @@
 		id,user_id,total_amount,lock_amount,available_amount,total_income_amount,total_pay_amount,create_time,update_time,is_deleted
 	</sql>
 
+<!--	检查及扣减账户余额-->
 	<update id="checkAndDeduct">
 		update user_account set total_amount=total_amount-#{amount},
 								available_amount=available_amount-#{amount},
@@ -19,5 +20,31 @@
 								update_time=now()
 		where user_id=#{userId} and is_deleted=0 and available_amount>=#{amount};
 	</update>
+
+<!--	账户充值-->
+	<update id="add">
+			UPDATE user_account
+			SET total_amount = total_amount + #{amount},
+				available_amount = available_amount + #{amount},
+				total_income_amount = total_income_amount + #{amount},
+				update_time = now()
+			WHERE
+				user_id = #{userId}
+	</update>
+
+<!--	分页查询当前用户充值、消费记录-->
+	<select id="getUserAccountDetailPage" resultType="com.atguigu.tingshu.model.account.UserAccountDetail">
+		select *
+		from user_account_detail
+		where user_id = #{userId} and trade_type = #{tradeType} and is_deleted = 0
+		order by id desc
+	</select>
+
+	<select id="getUserConsumePage" resultType="com.atguigu.tingshu.model.account.UserAccountDetail">
+		select *
+		from user_account_detail
+		where user_id = #{userId} and trade_type = #{tradeType} and is_deleted = 0
+		order by id desc
+	</select>
 </mapper>
 

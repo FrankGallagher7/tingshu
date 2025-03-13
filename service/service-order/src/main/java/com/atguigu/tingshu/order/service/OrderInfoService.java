@@ -41,7 +41,7 @@ public interface OrderInfoService extends IService<OrderInfo> {
      * @param orderNo
      * @return
      */
-    OrderInfo getOrderInfo(Long userId, String orderNo);
+    OrderInfo getOrderInfo(String orderNo);
 
     /**
      * 分页获取当前用户订单列表
@@ -56,4 +56,10 @@ public interface OrderInfoService extends IService<OrderInfo> {
      * @param aLong
      */
     void orderCanncal(Long aLong);
+
+    /**
+     * 用户支付成功后，修改订单状态(远程调用用户服务-新增用户购买记录)
+     * @param orderNo
+     */
+    void orderPaySuccess(String orderNo);
 }

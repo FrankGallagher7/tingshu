@@ -72,7 +72,7 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
             paymentInfoDB.setAmount(orderInfo.getOrderAmount());
             paymentInfoDB.setContent(orderInfo.getOrderTitle());
             // 充值
-        } else if (SystemConstant.PAYMENT_TYPE_RECHARGE.equals(paymentType)) { // 会员充值
+        } else if (SystemConstant.PAYMENT_TYPE_RECHARGE.equals(paymentType)) { // 充值
             //远程调用账户服务获取充值金额
             RechargeInfo rechargeInfo = accountFeignClient.getRechargeInfo(orderNo).getData();
             Assert.notNull(rechargeInfo, "充值记录不存在！");
@@ -115,7 +115,7 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
         // 更新支付记录
         paymentInfoMapper.updateById(paymentInfo);
 
-        //3.todo 远程调用订单服务/账户服务 完成订单/充值状态变更：已支付
+        //3.远程调用订单服务/账户服务 完成订单/充值状态变更：已支付
         //3.1 判断支付类型：1301-订单
         if (SystemConstant.PAYMENT_TYPE_ORDER.equals(paymentInfo.getPaymentType())) {
             Result result = orderFeignClient.orderPaySuccess(orderNo);
@@ -124,7 +124,7 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
             }
         }
 
-        //3.2 TODO 判断支付类型：1302-充值
+        //3.2 判断支付类型：1302-充值
         if (SystemConstant.PAYMENT_TYPE_RECHARGE.equals(paymentInfo.getPaymentType())) {
             Result result = accountFeignClient.rechargePaySuccess(orderNo);
             if (200 != result.getCode()) {

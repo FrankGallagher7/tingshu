@@ -1,10 +1,13 @@
 package com.atguigu.tingshu.account.api;
 
 import com.atguigu.tingshu.account.service.UserAccountService;
+import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.login.GuiLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,38 @@ public class UserAccountApiController {
 	@Autowired
 	private UserAccountService userAccountService;
 
+
+	/**
+	 * 分页查询当前用户消费记录
+	 * /api/account/userAccount/findUserConsumePage/{page}/{limit}
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	@GuiLogin
+	@Operation(summary = "分页查询当前用户充值记录")
+	@GetMapping("/userAccount/findUserConsumePage/{page}/{limit}")
+	public Result<Page<UserAccountDetail>> getUserConsumePage(@PathVariable int page, @PathVariable int limit) {
+		Page<UserAccountDetail> pageInfo = new Page<>(page, limit);
+		userAccountService.getUserConsumePage(pageInfo, SystemConstant.ACCOUNT_TRADE_TYPE_MINUS); //账号交易类型 1201-充值 1202-锁定 1203-解锁 1204-消费
+		return Result.ok(pageInfo);
+	}
+
+	/**
+	 * 分页查询当前用户充值记录
+	 * /api/account/userAccount/findUserRechargePage/{page}/{limit}
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	@GuiLogin
+	@Operation(summary = "分页查询当前用户充值记录")
+	@GetMapping("/userAccount/findUserRechargePage/{page}/{limit}")
+	public Result<Page<UserAccountDetail>> getUserRechargePage(@PathVariable int page, @PathVariable int limit) {
+		Page<UserAccountDetail> pageInfo = new Page<>(page, limit);
+		userAccountService.getUserAccountDetailPage(pageInfo, SystemConstant.ACCOUNT_TRADE_TYPE_DEPOSIT); //账号交易类型 1201-充值 1202-锁定 1203-解锁 1204-消费
+		return Result.ok(pageInfo);
+	}
 
 
 

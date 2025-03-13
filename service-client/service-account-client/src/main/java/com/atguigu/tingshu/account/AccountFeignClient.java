@@ -19,6 +19,14 @@ import org.springframework.web.bind.annotation.RequestBody;
  */
 @FeignClient(value = "service-account", fallback = AccountDegradeFeignClient.class)
 public interface AccountFeignClient {
+    /**
+     * 用户充值，支付成功后，充值业务处理
+     * /api/account/rechargeInfo/rechargePaySuccess/{orderNo}
+     * @param orderNo
+     * @return
+     */
+    @GetMapping("/api/account/rechargeInfo/rechargePaySuccess/{orderNo}")
+    public Result rechargePaySuccess(@PathVariable String orderNo);
 
     /**
      * 根据订单号获取充值信息

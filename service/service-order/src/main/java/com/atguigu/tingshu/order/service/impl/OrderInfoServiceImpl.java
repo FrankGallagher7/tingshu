@@ -34,6 +34,7 @@ import com.atguigu.tingshu.vo.order.TradeVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.seata.spring.annotation.GlobalTransactional;
@@ -42,6 +43,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -52,6 +54,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @SuppressWarnings({"all"})
+
 public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo> implements OrderInfoService {
 
     @Autowired
@@ -392,7 +395,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
      * @return
      */
     @Override
-    public OrderInfo getOrderInfo(Long userId, String orderNo) {
+    public OrderInfo getOrderInfo(String orderNo) {
         //1.根据订单编号查询订单信息
         LambdaQueryWrapper<OrderInfo> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(OrderInfo::getOrderNo, orderNo);
@@ -448,6 +451,43 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             //2.如果订单为未支付，说明超时未付款-修改为关闭
             orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_CANCEL);
             orderInfoMapper.updateById(orderInfo);
+            System.out.println("订单关闭");
+        }
+    }
+
+    /**
+     * 用户支付成功后，修改订单状态(远程调用用户服务-新增用户购买记录)
+     * @param orderNo
+     */
+    @Override
+//    @Transactional(rollbackFor = Exception.class)
+    public void orderPaySuccess(String orderNo) {
+        // 查询
+        OrderInfo orderInfo = this.getOrderInfo(orderNo);
+
+        if (orderInfo != null && SystemConstant.ORDER_STATUS_PAID.equals(orderInfo.getOrderStatus())) { // 已支付
+            return;
+        }
+        //2.修改订单支付状态：已支付
+        orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_PAID);
+        orderInfoMapper.updateById(orderInfo);
+
+        //3.远程调用“用户服务”新增用户购买记录（VIP，专辑）
+        //3.1 构建用户购买记录VO对象
+        UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
+        userPaidRecordVo.setOrderNo(orderInfo.getOrderNo()); // 订单id
+        userPaidRecordVo.setUserId(orderInfo.getUserId()); // 用户id
+        userPaidRecordVo.setItemType(orderInfo.getItemType()); // 商品类型--VIP/专辑
+        //遍历订单中订单商品明细封装购买项目ID
+        List<Long> itemIdList = orderInfo.getOrderDetailList().stream()
+                .map(OrderDetail::getItemId)
+                .collect(Collectors.toList());
+        userPaidRecordVo.setItemIdList(itemIdList); // 物品id
+
+        //3.2 远程调用为用户新增购买记录
+        Result userResult = userFeignClient.savePaidRecord(userPaidRecordVo);
+        if (200 != userResult.getCode()) {
+            throw new GuiguException(500, "新增购买记录异常！");
         }
     }
 
