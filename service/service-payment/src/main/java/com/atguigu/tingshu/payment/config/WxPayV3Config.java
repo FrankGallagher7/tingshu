@@ -15,7 +15,7 @@ public class WxPayV3Config {
     /** 商户号 */
     public String merchantId;
     /** 商户API私钥路径 */
-    public String privateKeyPath;
+    public String privateKeyPath = "D:/java/graduation_project/front_projectu/apiclient_key.pem";
     /** 商户证书序列号 */
     public String merchantSerialNumber;
     /** 商户APIV3密钥 */
