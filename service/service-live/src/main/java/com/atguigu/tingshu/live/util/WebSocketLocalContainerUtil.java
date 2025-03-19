@@ -134,7 +134,7 @@ public class WebSocketLocalContainerUtil {
     }
 
     /**
-     * 构建发生消息对象
+     * 构建发送消息对象
      * @param liveRoomId
      * @param fromUser
      * @param msgTypeEnum
@@ -148,7 +148,7 @@ public class WebSocketLocalContainerUtil {
         socketMsg.setLiveRoomId(liveRoomId);
         socketMsg.setMsgType(msgTypeEnum.getCode());
         socketMsg.setFromUser(fromUser);
-//        socketMsg.setTime(new DateTime().toString("HH:mm:ss"));
+        socketMsg.setTime(new DateTime().toString("HH:mm:ss"));
         //  返回数据
         return socketMsg;
     }

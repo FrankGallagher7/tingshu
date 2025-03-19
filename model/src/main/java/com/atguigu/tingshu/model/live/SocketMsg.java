@@ -11,6 +11,9 @@ import lombok.Getter;
 @Data
 public class SocketMsg {
 
+//    public void setTime(String string) {
+//    }
+
     @Getter
     public enum MsgTypeEnum {
 
@@ -22,7 +25,7 @@ public class SocketMsg {
         TOKEN_INVALID("-1","token无效"),
         ;
 
-        private String code;
+        private String code; //直播间消息类型
         private String data;
 
         MsgTypeEnum(String code, String data) {
@@ -45,5 +48,5 @@ public class SocketMsg {
     //发送者
     private FromUser fromUser;
     //时间戳
-    private Long timestamp;
+    private String time;
 }
