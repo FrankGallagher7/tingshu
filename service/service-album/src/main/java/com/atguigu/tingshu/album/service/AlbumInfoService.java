@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
+import java.util.Set;
 
 public interface AlbumInfoService extends IService<AlbumInfo> {
 
@@ -59,4 +60,10 @@ public interface AlbumInfoService extends IService<AlbumInfo> {
      * @return
      */
     AlbumStatVo getAlbumStatVo(Long albumId);
+
+    /**
+     * 根据id集合批量查询专辑信息
+     * @return
+     */
+    List<AlbumInfo> batchGetAlbumsByIds(Set<Long> albumIds);
 }

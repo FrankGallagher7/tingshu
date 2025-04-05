@@ -51,8 +51,6 @@ public class VodServiceImpl implements VodService {
             if (StringUtil.isEmpty(tempPath)) {
                 throw new GuiguException(400,"上传失败，当前声音为空");
             }
-
-
             // 创建客户端对象
             // 创建请求对象，设置媒体本地上传路径。
             VodUploadRequest request = new VodUploadRequest();
@@ -63,10 +61,8 @@ public class VodServiceImpl implements VodService {
             // 获取上传后的声音id和声音播放地址
             String fileId = response.getFileId();
             String mediaUrl = response.getMediaUrl();
-
             resultMap.put("mediaFileId", fileId);
             resultMap.put("mediaUrl", mediaUrl);
-
             log.info("[专辑服务]上传音频文件到点播平台：mediaFileId：{}，mediaUrl：{}", fileId, mediaUrl);
         } catch (Exception e) {
             log.info("[专辑服务]上传音频文件到点播平台异常：文件：{}，错误信息：{}",file, e);

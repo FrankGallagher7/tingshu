@@ -7,8 +7,10 @@ import com.atguigu.tingshu.vo.album.AlbumStatVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -19,6 +21,20 @@ import java.util.List;
  */
 @FeignClient(value = "service-album", fallback = AlbumDegradeFeignClient.class)
 public interface AlbumFeignClient {
+
+    /**
+     * 根据id集合批量查询声音信息
+     * @return
+     */
+    @GetMapping("/api/album/albumList")
+    Result<List<TrackInfo>> batchGetTracksByIds(@RequestParam("trackIds") Set<Long> trackIds);
+
+    /**
+     * 根据id集合批量查询专辑信息
+     * @return
+     */
+    @GetMapping("/api/album")
+    Result<List<AlbumInfo>> batchGetAlbumsByIds(@RequestParam("albumIds") Set<Long> albumIds);
 
     /**
      * 根据声音ID+声音数量 获取下单付费声音列表
@@ -75,6 +91,7 @@ public interface AlbumFeignClient {
      */
     @GetMapping("/api/album/category/getCategoryView/{category3Id}")
     public Result<BaseCategoryView> getCategoryView(@PathVariable Long category3Id);
+
     /**
      * 根据ID查询专辑信息
      * @param id

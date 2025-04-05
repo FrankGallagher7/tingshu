@@ -81,11 +81,8 @@ public class SearchServiceImpl implements SearchService {
      */
     @Override
     public void upperAlbum(Long albumId) {
-
-
         //1.构建索引库文档对象
         AlbumInfoIndex albumInfoIndex = new AlbumInfoIndex();
-
         //2.封装专辑及专辑标签属性-远程调用专辑服务获取专辑信息（包含专辑标签列表）
         //2.1 处理专辑基本信息 不依赖其他任务，当前任务得有返回值
         CompletableFuture<AlbumInfo> albumInfoCompletableFuture = CompletableFuture.supplyAsync(() -> {
@@ -142,7 +139,6 @@ public class SearchServiceImpl implements SearchService {
             BigDecimal hotScore = bigDecimal1.add(bigDecimal2).add(bigDecimal3).add(bigDecimal4);
             albumInfoIndex.setHotScore(hotScore.doubleValue());
         }, threadPoolExecutor);
-
 
         //6.组合异步任务对象-需求以上四个异步任务必须全部执行完毕，主线程继续
         CompletableFuture.allOf(

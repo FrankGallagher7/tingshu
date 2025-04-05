@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @Tag(name = "专辑管理")
 @RestController
@@ -26,6 +27,17 @@ public class AlbumInfoApiController {
 
 	@Autowired
 	private AlbumInfoService albumInfoService;
+
+	/**
+	 * 根据id集合批量查询专辑信息
+	 * @return
+	 */
+	@GetMapping
+	public Result<List<AlbumInfo>> batchGetAlbumsByIds(@RequestParam("albumIds") Set<Long> albumIds) {
+		List<AlbumInfo> albumInfoList = albumInfoService.batchGetAlbumsByIds(albumIds);
+		return Result.ok(albumInfoList);
+	}
+
 
 
 	/**
@@ -120,9 +132,7 @@ public class AlbumInfoApiController {
 		// 获取用户ID
 		Long userId = AuthContextHolder.getUserId();
 		albumInfoQuery.setUserId(userId);
-
 		albumListVoPage = albumInfoService.findUserAlbumPage(albumListVoPage,albumInfoQuery);
-
 		return Result.ok(albumListVoPage);
 	}
 
@@ -135,12 +145,9 @@ public class AlbumInfoApiController {
 	@PostMapping("/albumInfo/saveAlbumInfo")
 	@GuiLogin
 	public Result saveAlbumInfo(@RequestBody AlbumInfoVo albumInfoVo) {
-
 		// 获取用户ID
 		Long userId = AuthContextHolder.getUserId();
-
 		albumInfoService.saveAlbumInfo(albumInfoVo,userId);
-
 		return Result.ok();
 	}
 

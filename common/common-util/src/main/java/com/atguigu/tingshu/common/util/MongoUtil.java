@@ -26,7 +26,7 @@ public class MongoUtil {
 
 
     /**
-     * 获取mongo表名
+     * 获取mongo表名 100取余动态分表
      * @param mongoCollection Collection前缀
      * @param route 路由
      * @return

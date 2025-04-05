@@ -473,4 +473,17 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		}
 		return waitBuyTrackList;
 	}
+
+	/**
+	 * 根据id集合批量查询声音信息
+	 * @param trackIds
+	 * @return
+	 */
+	@Override
+	public List<TrackInfo> batchGetTracksByIds(Set<Long> trackIds) {
+		if (trackIds == null || trackIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		return trackInfoMapper.selectBatchIds(trackIds);
+	}
 }

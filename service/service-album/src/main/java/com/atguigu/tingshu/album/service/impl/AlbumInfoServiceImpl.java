@@ -26,9 +26,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -54,25 +57,16 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	@Transactional(rollbackFor = Exception.class)
 	@Override
 	public void saveAlbumInfo(AlbumInfoVo albumInfoVo, Long userId) {
-
 		// 拷贝数据创建保存对象（保存用户id）
 		AlbumInfo albumInfo = BeanUtil.copyProperties(albumInfoVo, AlbumInfo.class);
-		// 设置用户id
-		albumInfo.setUserId(userId);
-		// 设置免费试听集数
-		albumInfo.setTracksForFree(5);
-		// 设置审核通过
-		albumInfo.setStatus(SystemConstant.ALBUM_STATUS_PASS);
-
-		// 保存album_info
-		albumInfoMapper.insert(albumInfo);
-
-		// 保存album_attribute_value
-		List<AlbumAttributeValue> albumAttributeValueVoList = albumInfo.getAlbumAttributeValueVoList();
+		albumInfo.setUserId(userId); // 设置用户id
+		albumInfo.setTracksForFree(5); // 设置免费试听集数
+		albumInfo.setStatus(SystemConstant.ALBUM_STATUS_PASS); // 设置审核通过
+		albumInfoMapper.insert(albumInfo); // 保存album_info
+		List<AlbumAttributeValue> albumAttributeValueVoList = albumInfo.getAlbumAttributeValueVoList(); // 保存album_attribute_value
 
 		// 判断有无属性
 		if (CollectionUtil.isEmpty(albumAttributeValueVoList)){
-
 			throw new GuiguException(400,"专辑信息不完整，没有属性信息");
 		}
 		for (AlbumAttributeValue albumAttributeValue : albumAttributeValueVoList) {
@@ -97,7 +91,6 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	 */
 	@Override
 	public Page<AlbumListVo> findUserAlbumPage(Page<AlbumListVo> albumListVoPage, AlbumInfoQuery albumInfoQuery) {
-
 		return albumInfoMapper.selectUserAlbumPage(albumListVoPage, albumInfoQuery);
 	}
 
@@ -227,6 +220,18 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	public AlbumStatVo getAlbumStatVo(Long albumId) {
 
 		return albumInfoMapper.getAlbumStatVo(albumId);
+	}
+
+	/**
+	 * 根据id集合批量查询专辑信息
+	 * @return
+	 */
+	@Override
+	public List<AlbumInfo> batchGetAlbumsByIds(Set<Long> albumIds) {
+		if (albumIds == null || albumIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		return albumInfoMapper.selectBatchIds(albumIds);
 	}
 
 	/**

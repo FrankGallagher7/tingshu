@@ -37,7 +37,7 @@ public interface OrderInfoService extends IService<OrderInfo> {
 
     /**
      * 查询当前用户指定订单信息-根据订单号
-     * @param userId
+     * @param
      * @param orderNo
      * @return
      */

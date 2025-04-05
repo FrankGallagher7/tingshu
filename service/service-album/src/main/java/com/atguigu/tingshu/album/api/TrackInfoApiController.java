@@ -5,6 +5,7 @@ import com.atguigu.tingshu.album.service.VodService;
 import com.atguigu.tingshu.common.login.GuiLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Tag(name = "声音管理")
 @RestController
@@ -31,6 +33,16 @@ public class TrackInfoApiController {
 
 	@Autowired
 	private VodService vodService;
+
+	/**
+	 * 根据id集合批量查询声音信息
+	 * @return
+	 */
+	@GetMapping("/albumList")
+	public Result<List<TrackInfo>> batchGetTracksByIds(@RequestParam("trackIds") Set<Long> trackIds) {
+		List<TrackInfo> trackInfoList = trackInfoService.batchGetTracksByIds(trackIds);
+		return Result.ok(trackInfoList);
+	}
 
 
 	/**根据声音ID+声音数量 获取下单付费声音列表
@@ -191,9 +203,7 @@ public class TrackInfoApiController {
 	 */
 	@PostMapping("/trackInfo/uploadTrack")
 	public Result<Map<String, String>> uploadTrack(MultipartFile file) {
-
 		Map<String, String> resultMap = vodService.uploadTrack(file);
-
 		return Result.ok(resultMap);
 	}
 

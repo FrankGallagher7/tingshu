@@ -19,7 +19,6 @@
         max(if(ast.stat_type='0404', ast.stat_num, 0)) commentStatNum
 #     ast.stat_type,
 #     ast.stat_num
-
     from album_info ai
              inner join album_stat ast
                         on ai.id = ast.album_id
@@ -33,8 +32,6 @@
         </if>
         and ai.is_deleted = 0
     </where>
-
-
 
     group by ai.id
     order by ai.id desc

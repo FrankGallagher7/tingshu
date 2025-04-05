@@ -61,7 +61,7 @@ public class LiveRoomApiController {
 	}
 
 	/**
-	 * 获取用户当前正在直播的信息
+	 * 获取用户是否有当前正在直播的信息
 	 * /api/live/liveRoom/getCurrentLive
 	 * @return
 	 */

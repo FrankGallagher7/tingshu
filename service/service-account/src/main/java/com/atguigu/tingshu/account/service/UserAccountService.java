@@ -58,7 +58,7 @@ public interface UserAccountService extends IService<UserAccount> {
     /**
      * 分页查询当前用户消费记录
      * @param pageInfo
-     * @param accountTradeTypeMinus
+     * @param
      */
     void getUserConsumePage(Page<UserAccountDetail> pageInfo, String tradeType);
 }

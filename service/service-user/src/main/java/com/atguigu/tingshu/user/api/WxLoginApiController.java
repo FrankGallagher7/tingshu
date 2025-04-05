@@ -39,12 +39,8 @@ public class WxLoginApiController {
      * @return
      */
     @GetMapping("/wxLogin/{code}")
-    public Result<Map<String, String>> wxLogin(@PathVariable String code) {
+    public Result<Map<String, String>> wxLogin(@PathVariable String code) {return Result.ok(userInfoService.wxLogin(code));}
 
-        Map<String, String> result = userInfoService.wxLogin(code);
-
-        return Result.ok(result);
-    }
 
 
     /**

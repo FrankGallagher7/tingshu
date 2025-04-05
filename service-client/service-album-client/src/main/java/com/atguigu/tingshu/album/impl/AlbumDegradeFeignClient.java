@@ -9,10 +9,32 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 
 @Component
 @Slf4j
 public class AlbumDegradeFeignClient implements AlbumFeignClient {
+
+    /**
+     * 根据id集合批量查询声音信息
+     * @return
+     */
+    @Override
+    public Result<List<TrackInfo>> batchGetTracksByIds(Set<Long> trackIds) {
+        log.error("[专辑模块]提供远程调用方法batchGetTracksByIds服务降级-->根据id集合批量查询声音信息");
+        return Result.fail();
+    }
+
+    /**
+     * 根据id集合批量查询专辑信息
+     * @param albumIds
+     * @return
+     */
+    @Override
+    public Result<List<AlbumInfo>> batchGetAlbumsByIds(Set<Long> albumIds) {
+        log.error("[专辑模块]提供远程调用方法batchGetAlbumsByIds服务降级-->根据id集合批量查询专辑信息");
+        return Result.fail();
+    }
 
     /**
      * 根据声音ID+声音数量 获取下单付费声音列表

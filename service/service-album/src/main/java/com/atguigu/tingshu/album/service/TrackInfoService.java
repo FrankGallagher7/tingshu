@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface TrackInfoService extends IService<TrackInfo> {
 
@@ -73,4 +74,11 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     List<TrackInfo> getWaitBuyTrackInfoList(Long userId, Long trackId, int trackCount);
+
+    /**
+     * 根据id集合批量查询声音信息
+     * @param trackIds
+     * @return
+     */
+    List<TrackInfo> batchGetTracksByIds(Set<Long> trackIds);
 }

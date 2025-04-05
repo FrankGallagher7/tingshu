@@ -305,7 +305,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         Result deductResult = accountFeignClient.checkAndDeduct(accountDeductVo);
         if (200 != deductResult.getCode()) {
             //扣减余额失败：全局事务都需要回滚
-            throw new GuiguException(ResultCodeEnum.ACCOUNT_LESS);
+            throw new GuiguException(ResultCodeEnum.ACCOUNT_LESS); // 余额不足
         }
 
         // 4.2  虚拟物品发货-远程调用用户服务新增购买记录  声音 专辑 VIP
