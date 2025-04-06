@@ -23,11 +23,22 @@ import java.util.Map;
 @SuppressWarnings({"all"})
 public class SearchApiController {
 
+    /**
+     * 根据用户录入部分关键字进行自动补全
+     * @param keyword
+     * @return
+     */
+    @Operation(summary = "根据用户录入部分关键字进行自动补全")
+    @GetMapping("/albumInfo/completeSuggest/{keyword}")
+    public Result<List<String>> completeSuggest(@PathVariable String keyword){
+        List<String> list = searchService.completeSuggest(keyword);
+        return Result.ok(list);
+    }
+
 
     /**
      * 获取排行榜
-     *
-     *  获取指定1级分类下不同排序方式榜单列表-从Redis中获取
+     * 获取指定1级分类下不同排序方式榜单列表-从Redis中获取
      * /api/search/albumInfo/findRankingList/{category1Id}/{dimension}
      * @param category1Id
      * @param dimension

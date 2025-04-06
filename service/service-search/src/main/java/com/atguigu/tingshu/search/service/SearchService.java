@@ -1,13 +1,22 @@
 package com.atguigu.tingshu.search.service;
 
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
+import com.atguigu.tingshu.model.search.SuggestIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 public interface SearchService {
+
+    /**
+     * 构建提词库
+     * @param albumInfoIndex
+     */
+    void saveSuggetIndex(AlbumInfoIndex albumInfoIndex);
 
 
     /**
@@ -50,4 +59,19 @@ public interface SearchService {
      * @return
      */
     List<AlbumInfoIndex> findRankingList(String category1Id, String dimension);
+
+    /**
+     * 根据用户录入部分关键字进行自动补全
+     * @param keyword
+     * @return
+     */
+    List<String> completeSuggest(String keyword);
+
+    /**
+     * 解析建议词结果
+     * @param suggestName 自定义建议名称
+     * @param searchResponse ES响应结果对象
+     * @return
+     */
+    Collection<String> parseSuggestResult(String suggestName, SearchResponse<SuggestIndex> searchResponse);
 }

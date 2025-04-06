@@ -39,7 +39,9 @@ public class WxLoginApiController {
      * @return
      */
     @GetMapping("/wxLogin/{code}")
-    public Result<Map<String, String>> wxLogin(@PathVariable String code) {return Result.ok(userInfoService.wxLogin(code));}
+    public Result<Map<String, String>> wxLogin(@PathVariable String code) {
+        return Result.ok(userInfoService.wxLogin(code));
+    }
 
 
 
@@ -51,11 +53,8 @@ public class WxLoginApiController {
     @GetMapping("/getUserInfo")
     @GuiLogin(required = true)
     public Result<UserInfoVo> getUserInfo() {
-
         Long userId = AuthContextHolder.getUserId();
-
         UserInfoVo userInfoVo = userInfoService.getUserInfo(userId);
-
         return Result.ok(userInfoVo);
     }
 

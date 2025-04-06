@@ -116,7 +116,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 				}
 
 				//1.生成token
-				String token = IdUtil.getSnowflakeNextIdStr();
+				String token = IdUtil.getSnowflakeNextIdStr(); // 生成token
 				//2.定义存储key
 				String loginKey =  RedisConstant.USER_LOGIN_KEY_PREFIX+token;
 				//基于安全信息控制，UserInfoVo
@@ -142,7 +142,6 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 	 */
 	@Override
 	public UserInfoVo getUserInfo( Long id) {
-
 		UserInfo userInfo = userInfoMapper.selectById(id);
 		return BeanUtil.copyProperties(userInfo, UserInfoVo.class);
 	}
@@ -154,9 +153,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 	@Override
 	public void updateUser(UserInfoVo userInfoVo) {
 		UserInfo userInfo = BeanUtil.copyProperties(userInfoVo, UserInfo.class);
-
 		userInfoMapper.updateById(userInfo);
-
 	}
 
 	/**

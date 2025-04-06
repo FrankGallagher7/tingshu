@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.extra.pinyin.PinyinUtil;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
@@ -13,7 +14,9 @@ import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.CompletionSuggestOption;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.Suggestion;
 import co.elastic.clients.json.JsonData;
 import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.AlbumFeignClient;
@@ -22,8 +25,10 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.*;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
+import com.atguigu.tingshu.model.search.SuggestIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.repository.AlbumInfoIndexRepository;
+import com.atguigu.tingshu.search.repository.SuggestIndexRepository;
 import com.atguigu.tingshu.search.service.SearchService;
 import com.atguigu.tingshu.user.client.UserFeignClient;
 import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
@@ -33,16 +38,14 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.suggest.Completion;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
@@ -54,6 +57,7 @@ import java.util.stream.Collectors;
 public class SearchServiceImpl implements SearchService {
 
     private static final String INDEX_NAME = "albuminfo";
+    private static final String SUGGEST_INDEX_NAME = "suggestinfo";
 
     @Autowired
     private AlbumFeignClient albumFeignClient;
@@ -150,6 +154,10 @@ public class SearchServiceImpl implements SearchService {
 
         //7.将索引库文档对象存入索引库
         albumInfoIndexRepository.save(albumInfoIndex);
+
+        // 上架成功建立索引库
+        this.saveSuggetIndex(albumInfoIndex);
+
 //
 //        //创建封装数据实体
 //        //根据专辑ID查询专辑信息
@@ -218,6 +226,31 @@ public class SearchServiceImpl implements SearchService {
 //        //6.将索引库文档对象存入索引库
 //        albumInfoIndexRepository.save(albumInfoIndex);
 
+    }
+
+    @Autowired
+    private SuggestIndexRepository suggestIndexRepository;
+    /**
+     * 构建提词库
+     * @param albumInfoIndex
+     */
+    @Override
+    public void saveSuggetIndex(AlbumInfoIndex albumInfoIndex) {
+        //1.将专辑标题内容作为提词原始记录存入提词库
+        SuggestIndex suggestIndex = new SuggestIndex();
+        //1.1 封装提词记录主键 - 跟专辑文档主键一致
+        suggestIndex.setId(albumInfoIndex.getId().toString());
+        //1.2 封装提词原始内容 给用户展示提词内容（专辑名称）
+        String albumTitle = albumInfoIndex.getAlbumTitle();
+        suggestIndex.setTitle(albumTitle);
+        //1.3 用于提词字段：汉字提词
+        suggestIndex.setKeyword(new Completion(new String[]{suggestIndex.getTitle()}));
+        //1.4 用于提词字段：拼音提词 将中文转为拼音 采用""
+        suggestIndex.setKeywordPinyin(new Completion(new String[]{PinyinUtil.getPinyin(albumTitle, "")}));
+        //1.4 用于提词字段：首字母提词 将中文转为拼音首字母 采用""分割
+        suggestIndex.setKeywordSequence(new Completion(new String[]{PinyinUtil.getFirstLetter(albumTitle, "")}));
+        //2.执行保存
+        suggestIndexRepository.save(suggestIndex);
     }
 
     /**
@@ -400,6 +433,81 @@ public class SearchServiceImpl implements SearchService {
         }
 
         return null;
+    }
+
+    /**
+     * 根据用户录入部分关键字进行自动补全
+     * @param keyword
+     * @return
+     */
+    @Override
+    public List<String> completeSuggest(String keyword) {
+        try {
+            //1.根据用户录入关键字进行建议提词请求发起-DSL
+            SearchResponse<SuggestIndex> searchResponse = elasticsearchClient.search(
+                    s -> s.index(SUGGEST_INDEX_NAME)
+                            .suggest(s1 -> s1.suggesters("mySuggestKeyword", fs -> fs.prefix(keyword).completion(c -> c.field("keyword").size(10).skipDuplicates(true)))
+                                    .suggesters("mySuggestPinyin", fs -> fs.prefix(keyword).completion(c -> c.field("keywordPinyin").size(10).skipDuplicates(true)))
+                                    .suggesters("mySuggestSequence", fs -> fs.prefix(keyword).completion(c -> c.field("keywordSequence").size(10).skipDuplicates(true)))
+                            )
+                    , SuggestIndex.class
+            );
+            //2.解析建议词响应结果，将结果进行去重-LinkedHashSet-保证有序
+            Set<String> hashSet = new LinkedHashSet<>();
+            hashSet.addAll(this.parseSuggestResult("mySuggestKeyword", searchResponse));
+            hashSet.addAll(this.parseSuggestResult("mySuggestPinyin", searchResponse));
+            hashSet.addAll(this.parseSuggestResult("mySuggestSequence", searchResponse));
+            // 如果建议词记录数大于等于10，返回前10个建议词
+            if (hashSet.size() >= 10) {
+                return new ArrayList<>(hashSet).subList(0, 10);
+            }
+            //3.如果建议词记录数小于10，采用全文查询专辑索引库尝试补全-DSL-模糊匹配
+            SearchResponse<AlbumInfoIndex> response = elasticsearchClient.search(
+                    s -> s.index(INDEX_NAME).query(q -> q.match(m -> m.field("albumTitle").query(keyword))),
+                    AlbumInfoIndex.class
+
+            );
+            //解析检索结果，将结果放入HashSet
+            List<Hit<AlbumInfoIndex>> hits = response.hits().hits();
+            if (CollectionUtil.isNotEmpty(hits)) {
+                for (Hit<AlbumInfoIndex> hit : hits) {
+                    AlbumInfoIndex albumInfoIndex = hit.source();
+                    hashSet.add(albumInfoIndex.getAlbumTitle());
+                    if (hashSet.size() >= 10) {
+                        break;
+                    }
+                }
+            }
+            //4.最多返回10个自动补全提示词
+            return new ArrayList<>(hashSet);
+        } catch (Exception e) {
+            log.error("[搜索服务]建议词自动补全异常：{}", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    /**
+     * 解析建议词结果
+     *
+     * @param suggestName    自定义建议名称
+     * @param searchResponse ES响应结果对象
+     * @return
+     */
+    @Override
+    public Collection<String> parseSuggestResult(String suggestName, SearchResponse<SuggestIndex> searchResponse) {
+        //1.获取指定自定义建议词名称获取建议结果
+        List<Suggestion<SuggestIndex>> suggestionList = searchResponse.suggest().get(suggestName);
+        //2.获取建议自动补全对象
+        List<String> list = new ArrayList<>();
+        suggestionList.forEach(suggestIndexSuggestion -> {
+            //3.获取options中自动补全结果
+            for (CompletionSuggestOption<SuggestIndex> suggestOption : suggestIndexSuggestion.completion().options()) {
+                SuggestIndex suggestIndex = suggestOption.source();
+                list.add(suggestIndex.getTitle());
+            }
+        });
+        return list;
     }
 
     /**
