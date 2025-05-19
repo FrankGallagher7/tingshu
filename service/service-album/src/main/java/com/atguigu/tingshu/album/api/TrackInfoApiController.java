@@ -45,7 +45,8 @@ public class TrackInfoApiController {
 	}
 
 
-	/**根据声音ID+声音数量 获取下单付费声音列表
+	/**
+	 * 根据声音ID+声音数量 获取下单付费声音列表
 	 * 提供给订单服务渲染购买商品（声音）列表-查询当前用户待购买声音列表
 	 * /api/album/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}
 	 * @param trackId    声音ID
@@ -84,7 +85,7 @@ public class TrackInfoApiController {
 
 
 	/**
-	 * 查询专辑声音分页列表
+	 * 查询专辑声音分页列表-动态根据用户展示声音付费标识
 	 *
 	 * 用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识
 	 * /api/album/trackInfo/findAlbumTrackPage/{albumId}/{page}/{limit}

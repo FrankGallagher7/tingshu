@@ -1,6 +1,7 @@
 package com.atguigu.tingshu.user.service;
 
 import com.atguigu.tingshu.model.user.UserInfo;
+import com.atguigu.tingshu.model.user.UserLogin;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -58,4 +59,10 @@ public interface UserInfoService extends IService<UserInfo> {
      * @param userPaidRecordVo
      */
     void savePaidRecord(UserPaidRecordVo userPaidRecordVo);
+
+    /**
+     * 用户账户密码登录
+     * @return
+     */
+    Map<String, String> login(UserInfo userInfo);
 }

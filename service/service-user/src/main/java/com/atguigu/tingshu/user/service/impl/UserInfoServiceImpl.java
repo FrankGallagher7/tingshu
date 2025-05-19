@@ -11,6 +11,8 @@ import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.result.ResultCodeEnum;
 import com.atguigu.tingshu.common.service.KafkaService;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.TrackInfo;
@@ -23,6 +25,7 @@ import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.seata.core.protocol.ResultCode;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
@@ -337,6 +340,41 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 			userInfo.setIsVip(1);
 			userInfo.setVipExpireTime(userVipService.getExpireTime());
 			userInfoMapper.updateById(userInfo);
+		}
+	}
+
+	/**
+	 * 用户账户密码登录
+	 * @return
+	 */
+	@Override
+	public Map<String, String> login(UserInfo userInfo) {
+
+		// 根据密码账户查询
+		LambdaQueryWrapper<UserInfo> wrapper = new LambdaQueryWrapper<>();
+		wrapper.eq(UserInfo::getPhone, userInfo.getPhone());
+		wrapper.eq(UserInfo::getPassword, userInfo.getPassword());
+		UserInfo user = userInfoMapper.selectOne(wrapper);
+
+		// 判断是否有此人
+		if (Objects.isNull(user)) { // 没有
+			throw new GuiguException(ResultCodeEnum.ACCOUNT_ERROR);
+		} else {
+			//1.生成token
+			String token = IdUtil.getSnowflakeNextIdStr(); // 生成token
+			//2.定义存储key
+			String loginKey = RedisConstant.USER_LOGIN_KEY_PREFIX + token;
+			//基于安全信息控制，UserInfoVo
+			UserInfoVo userInfoVo = BeanUtil.copyProperties(user, UserInfoVo.class);
+			//3.存储用户信息到redis
+			redisTemplate.opsForValue().set(loginKey, userInfoVo, RedisConstant.USER_LOGIN_KEY_TIMEOUT, TimeUnit.SECONDS);
+
+			//封装存储
+			HashMap<String, String> result = new HashMap<>();
+			result.put("token", token);
+
+			log.info("[用户服务]账号密码登陆成功token：{}", token);
+			return result;
 		}
 	}
 }

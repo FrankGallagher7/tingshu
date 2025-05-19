@@ -56,7 +56,7 @@ public class SearchApiController {
 
 
     /**
-     * 更新所有分类下排行榜-手动调用
+     * 更新所有分类下排行榜
      *
      *  为定时更新首页排行榜提供调用接口
      * /api/search/albumInfo/updateLatelyAlbumRanking
@@ -64,9 +64,7 @@ public class SearchApiController {
      */
     @GetMapping("/albumInfo/updateLatelyAlbumRanking")
     public Result updateLatelyAlbumRanking() {
-
         searchService.updateLatelyAlbumRanking();
-
         return Result.ok();
     }
 

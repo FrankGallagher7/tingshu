@@ -90,8 +90,6 @@ public class WebSocketApiController {
         SocketMsg socketMsg = WebSocketLocalContainerUtil.buildSocketMsg(liveRoomId, fromUser, SocketMsg.MsgTypeEnum.JOIN_CHAT, "欢迎" + userInfo.getNickname() + "进入到直播间");
         // 调用发送消息
          WebSocketLocalContainerUtil.sendMsg(socketMsg);
-//        redisTemplate.convertAndSend("msg:list" , JSON.toJSONString(socketMsg)) ;       // 把消息的发送给redis的msg:list通道
-//
     }
 
 /**
@@ -121,8 +119,6 @@ public class WebSocketApiController {
 
         // 发送消息
         WebSocketLocalContainerUtil.sendMsg(socketMsg);
-//        redisTemplate.convertAndSend("msg:list" , JSON.toJSONString(socketMsg)) ;       // 把消息的发送给redis的msg:list通道
-        //客户端发送消息到服务端时，会触发这个注解修改的方法，它有一个 String 入参表明客户端传入的值
     }
 
 
@@ -135,15 +131,12 @@ public class WebSocketApiController {
     public void onMessage(Session session , String msg) {
         log.info("来自客户端的消息：{}", msg);
          SocketMsg socketMsg = JSON.parseObject(msg, SocketMsg.class);
-//         把发送的消息存储起来  -----> MongoDB
          WebSocketLocalContainerUtil.sendMsg(socketMsg);
-//        redisTemplate.convertAndSend("msg:list" , msg) ;       // 把消息的发送给redis的msg:list通道
     }
 
     //当 websocket 建立连接时出现异常会触发这个注解修饰的方法，注意它有一个 Session 参数
     @OnError            //声明当前方法是WebSocket的onError事件处理函数
     public void onError(Session session, Throwable throwable) {
         log.error("发生错误");
-//        throwable.printStackTrace();
     }
 }

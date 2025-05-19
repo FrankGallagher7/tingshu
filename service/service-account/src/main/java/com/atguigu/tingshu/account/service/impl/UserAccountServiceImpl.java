@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -90,12 +91,15 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 		wrapper.eq("user_id", userId);
 
 		UserAccount userAccount = userAccountMapper.selectOne(wrapper);
-		BigDecimal availableAmount = userAccount.getAvailableAmount();
-
-		if (availableAmount != null) {
-			return availableAmount;
+		if (Objects.isNull(userAccount)) {
+			return BigDecimal.ZERO;
+		} else {
+			BigDecimal availableAmount = userAccount.getAvailableAmount();
+			if (availableAmount != null) {
+				return availableAmount;
+			}
 		}
-		return null;
+		return BigDecimal.ZERO;
 	}
 
 	/**

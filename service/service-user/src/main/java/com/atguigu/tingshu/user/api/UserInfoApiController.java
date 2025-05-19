@@ -3,6 +3,8 @@ package com.atguigu.tingshu.user.api;
 import com.atguigu.tingshu.common.login.GuiLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.user.UserInfo;
+import com.atguigu.tingshu.model.user.UserLogin;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
@@ -22,6 +24,21 @@ public class UserInfoApiController {
 
 	@Autowired
 	private UserInfoService userInfoService;
+
+	/**
+	 * 用户账户密码登录
+	 * @param userLogin
+	 * @return
+	 */
+	@PostMapping("/login")
+	public Result<Map<String,String>> login(@RequestBody UserLogin userLogin) {
+		UserInfo userInfo = new UserInfo();
+		userInfo.setPhone(userLogin.getUsername());
+		userInfo.setPassword(userLogin.getPassword());
+
+		Map<String,String> map = userInfoService.login(userInfo);
+		return Result.ok(map);
+	}
 
 	/**
 	 * 接口登录/未登录均可调用（微信支付成功后，需要在异步回调（没有Token），调用该方法处理购买记录）

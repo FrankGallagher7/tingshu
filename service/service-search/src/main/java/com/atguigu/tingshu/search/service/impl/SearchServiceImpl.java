@@ -136,11 +136,11 @@ public class SearchServiceImpl implements SearchService {
             albumInfoIndex.setCommentStatNum(num4);
 
             //5.2 基于统计值计算出专辑得分 为不同统计类型设置不同权重
-            BigDecimal bigDecimal1 = new BigDecimal(num4).multiply(new BigDecimal("0.4"));
-            BigDecimal bigDecimal2 = new BigDecimal(num3).multiply(new BigDecimal("0.3"));
-            BigDecimal bigDecimal3 = new BigDecimal(num2).multiply(new BigDecimal("0.2"));
-            BigDecimal bigDecimal4 = new BigDecimal(num1).multiply(new BigDecimal("0.1"));
-            BigDecimal hotScore = bigDecimal1.add(bigDecimal2).add(bigDecimal3).add(bigDecimal4);
+            BigDecimal bigDecimal1 = new BigDecimal(num4).multiply(new BigDecimal("0.4")); // 评论量
+            BigDecimal bigDecimal2 = new BigDecimal(num3).multiply(new BigDecimal("0.3")); // 购买量
+            BigDecimal bigDecimal3 = new BigDecimal(num2).multiply(new BigDecimal("0.2")); // 订阅量
+            BigDecimal bigDecimal4 = new BigDecimal(num1).multiply(new BigDecimal("0.1")); // 播放量
+            BigDecimal hotScore = bigDecimal1.add(bigDecimal2).add(bigDecimal3).add(bigDecimal4); // 热度
             albumInfoIndex.setHotScore(hotScore.doubleValue());
         }, threadPoolExecutor);
 
@@ -379,7 +379,7 @@ public class SearchServiceImpl implements SearchService {
             List<Long> baseCategory1List = category1List.stream().map(baseCategory1 -> baseCategory1.getId()).collect(Collectors.toList());
             // 遍历集合  循环嵌套查询
             for (Long category1Id : baseCategory1List) {
-                // 设置查询的5个维度
+                // 设置查询的5个维度--热度（ 播放量，订阅量，购买量，评论量）
                 String[] rankingDimensionArray = new String[]{"hotScore", "playStatNum", "subscribeStatNum", "buyStatNum", "commentStatNum"};
 
                 // 循环维度
