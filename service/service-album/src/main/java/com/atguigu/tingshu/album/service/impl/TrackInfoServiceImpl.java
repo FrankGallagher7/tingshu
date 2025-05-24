@@ -18,13 +18,11 @@ import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.user.client.UserFeignClient;
-import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
-import com.atguigu.tingshu.vo.album.TrackInfoVo;
-import com.atguigu.tingshu.vo.album.TrackListVo;
-import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
+import com.atguigu.tingshu.vo.album.*;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -485,5 +483,36 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 			return Collections.emptyList();
 		}
 		return trackInfoMapper.selectBatchIds(trackIds);
+	}
+
+	/**
+	 * 根据声音ID，查询声音统计信息
+	 * @param trackId
+	 * @return
+	 */
+	@Override
+	public TrackStatVo getTrackStatVo(Long trackId) {
+		// 增加声音播放数
+		// 1.判断是否存在
+		TrackStat trackStat = trackStatMapper.selectOne(new LambdaQueryWrapper<TrackStat>()
+				.eq(TrackStat::getTrackId, trackId)
+				.eq(TrackStat::getStatType, "0701")
+		);
+
+		if (trackStat == null) {
+			trackStat = new TrackStat();
+			trackStat.setTrackId(trackId);
+			trackStat.setStatType("0701");
+			trackStat.setStatNum(0);
+			trackStatMapper.insert(trackStat);
+		}
+		// 2.增加声音播放数
+		trackStatMapper.update(new TrackStat(), new LambdaUpdateWrapper<TrackStat>()
+				.eq(TrackStat::getTrackId, trackId)
+				.eq(TrackStat::getStatType, "0701")
+				.setSql("stat_num = stat_num + 1")
+		);
+
+		return trackInfoMapper.getTrackStatVo(trackId);
 	}
 }
